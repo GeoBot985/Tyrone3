@@ -1,0 +1,139 @@
+Title: Network and System Access Security Standard Operating Procedure
+
+1. Purpose
+
+This document defines the procedures for managing user access to organisational systems and protecting network resources from unauthorised use.
+
+2. Scope
+
+This procedure applies to all employees, contractors, and third parties who access organisational systems or networks.
+
+3. Roles and Responsibilities
+
+3.1 IT Security Manager
+
+The IT Security Manager is responsible for defining access control policies and overseeing compliance with this procedure.
+
+3.2 System Owners
+
+System owners are responsible for approving user access to the systems under their control.
+
+3.3 Security Operations Team
+
+The security operations team is responsible for monitoring system logs and responding to security incidents.
+
+4. User Access Provisioning
+
+4.1 Access Requests
+
+User access requests must be submitted through the service management system.
+
+4.2 Access Approval
+
+User access must be approved by the system owner before accounts are created.
+
+4.3 Account Creation
+
+The IT service desk creates user accounts after approval is received.
+
+5. Privileged Access
+
+5.1 Privileged Access Approval
+
+Privileged access must be approved by the IT Security Manager.
+
+5.2 Privileged Account Management
+
+Privileged accounts must be used only for administrative tasks.
+
+5.3 Privileged Access Review
+
+The system owner must review privileged access quarterly and record the results in the privileged access review register.
+
+6. Authentication
+
+6.1 Password Requirements
+
+Passwords must meet the organisation's password complexity requirements.
+
+6.2 Multi-Factor Authentication
+
+Multi-factor authentication must be used for remote access to internal systems.
+
+6.3 Account Lockout
+
+User accounts must be locked after five unsuccessful login attempts.
+
+7. Logging
+
+7.1 Security Logging
+
+Systems must generate logs for authentication events and access control actions.
+
+7.2 Log Monitoring
+
+The security operations team must review authentication logs daily.
+
+7.3 Log Retention
+
+Security logs must be retained for at least 90 days.
+
+8. Network Security
+
+8.1 Firewall Protection
+
+All external network traffic must pass through an approved firewall.
+
+8.2 Firewall Rule Approval
+
+Firewall rules must be approved by the network security manager.
+
+8.3 Network Segmentation
+
+Internal networks must be segmented to separate user systems from critical infrastructure.
+
+8.4 Encryption in Transit
+
+Sensitive data transmitted across public networks must be encrypted.
+
+9. Endpoint Device Security
+
+9.1 Device Registration
+
+All corporate devices must be registered in the asset management system.
+
+9.2 Device Encryption
+
+Portable devices should use disk encryption where technically feasible.
+
+9.3 Physical Protection
+
+Employees must take reasonable care to protect devices from theft.
+
+9.4 Device Disposal
+
+Storage devices must be securely erased before disposal.
+
+10. Monitoring and Detection
+
+10.1 Security Monitoring
+
+The security operations team must monitor security alerts and investigate suspicious activity.
+
+10.2 Intrusion Detection
+
+Intrusion detection systems are used to detect unusual network activity.
+
+11. Incident Reporting
+
+Employees must report suspected security incidents to the IT security team.
+
+12. Compliance and Review
+
+12.1 Policy Compliance
+
+Failure to comply with this procedure may result in disciplinary action.
+
+12.2 Annual Review
+
+This procedure must be reviewed annually by the IT Security Manager.

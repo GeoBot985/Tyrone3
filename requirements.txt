@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+httpx
+pydantic
+jinja2
+duckdb
+pymupdf
+requests
+numpy
+python-multipart
+pytesseract==0.3.13
+python-docx
+tzlocal
+markitdown
+openpyxl

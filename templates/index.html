@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tyrone 3.0</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <aside id="corpus-sidebar" class="corpus-sidebar">
+            <div class="corpus-sidebar-header">
+                <div>
+                    <div class="sidebar-eyebrow">Knowledge Base</div>
+                    <h2>My Library</h2>
+                </div>
+                <div class="corpus-sidebar-actions">
+                    <button id="pin-corpus-btn" class="sidebar-btn" type="button">Pin</button>
+                    <button id="close-corpus-btn" class="sidebar-btn" type="button">Close</button>
+                </div>
+            </div>
+
+            <div class="corpus-panel">
+                <div class="corpus-header">
+                    <div class="corpus-controls">
+                        <button id="refresh-corpus-btn">Refresh</button>
+                        <button id="select-all-btn">Select All</button>
+                        <button id="clear-selection-btn">Clear Selection</button>
+                        <button id="remove-selected-btn" class="danger" disabled>Remove Selected</button>
+                    </div>
+                </div>
+
+                <div class="corpus-stats" id="corpus-stats">
+                    <div class="stat-item">Docs: <span id="stat-docs">0</span></div>
+                    <div class="stat-item">Chunks: <span id="stat-chunks">0</span></div>
+                    <div class="stat-item">Selected: <span id="stat-selected">0</span></div>
+                    <div class="stat-item">Last Ingest: <span id="stat-last-ingest">N/A</span></div>
+                </div>
+
+                <div class="corpus-scope-status">
+                    Retrieval scope: <span id="retrieval-scope-text">Full corpus</span>
+                </div>
+
+                <div id="corpus-list" class="corpus-list">
+                    <div class="empty-corpus-msg">No indexed documents.</div>
+                </div>
+            </div>
+
+            <div class="corpus-management">
+                <label>
+                    <input type="checkbox" id="clear-confirm-check"> Enable Clear Corpus
+                </label>
+                <button id="clear-corpus-btn" class="danger" disabled>Clear Corpus</button>
+            </div>
+        </aside>
+
+        <div id="corpus-overlay" class="corpus-overlay"></div>
+
+        <div class="main-panel">
+            <header>
+                <div class="header-top">
+                    <div>
+                        <div class="sidebar-eyebrow">Workspace</div>
+                        <h1>Tyrone 3.0</h1>
+                    </div>
+                    <button id="open-corpus-btn" class="sidebar-toggle-btn" type="button">My Library</button>
+                </div>
+                <div class="controls">
+                    <button id="reset-session-btn" class="sidebar-btn" style="margin-right: 12px;">Reset Session</button>
+                    <div class="control-group">
+                        <label for="model-select">Model:</label>
+                        <select id="model-select">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="mode-select">Mode:</label>
+                        <select id="mode-select">
+                            <option value="chat">Chat</option>
+                            <option value="document">Document</option>
+                            <option value="personal">Personal</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="status-area" class="status-area"></div>
+                <div id="chat-grounding-info" class="chat-grounding-info" style="display: none;">
+                    <span>Chat context: <strong id="chat-doc-name">None</strong></span>
+                    <button id="clear-chat-doc-btn" class="sidebar-btn" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 8px;">Clear</button>
+                </div>
+            </header>
+
+            <div class="ingest-panel">
+                <div class="ingest-controls">
+                    <input type="file" id="pdf-file-input" accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md" multiple style="display: none;">
+                    <button id="browse-pdf-btn">Browse Files</button>
+                    <div id="selected-files-container" class="selected-files-container">
+                        <span id="selected-pdf-path">No files selected. Supported: PDF, DOCX, PPTX, XLSX, XLS, CSV, TXT, MD.</span>
+                    </div>
+                    <button id="ingest-pdf-btn" disabled>Ingest Selected Files</button>
+                </div>
+                <div id="ingest-status-area" class="ingest-status-area">Ready</div>
+                <div id="batch-results-area" class="batch-results-area" style="display: none;">
+                    <!-- Batch ingestion results will appear here -->
+                </div>
+            </div>
+
+            <div class="chat-evidence-wrapper">
+                <div id="chat-area" class="chat-area">
+                    <!-- Chat messages will appear here -->
+                </div>
+
+                <div class="evidence-panel">
+                    <h3>Evidence</h3>
+                    <div id="evidence-output" class="evidence-output">
+                        <div class="empty-evidence-msg">No evidence yet.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="token-usage-bar" id="token-usage-bar">
+                <div class="token-usage-item">
+                    <span class="token-label">Mode:</span>
+                    <span id="token-mode">chat</span>
+                </div>
+                <div class="token-usage-item">
+                    <span class="token-label">Turn:</span>
+                    <span id="token-turn-total">0</span>
+                    <span class="token-sub">(P: <span id="token-turn-prompt">0</span> / R: <span id="token-turn-response">0</span>)</span>
+                </div>
+                <div class="token-usage-item">
+                    <span class="token-label">Session:</span>
+                    <span id="token-session-total">0</span>
+                    <span class="token-sub">(Turns: <span id="token-session-turns">0</span>)</span>
+                </div>
+                <div class="token-usage-item token-local-note">
+                    Local model - no cost
+                </div>
+            </div>
+
+            <div class="input-area">
+                <textarea id="message-input" placeholder="Type your message here..." rows="3"></textarea>
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+
+        <div id="debug-resizer" class="debug-resizer" aria-hidden="true"></div>
+        <div class="debug-panel">
+            <h2>Session Grounding</h2>
+            <div id="grounding-display" class="grounding-display">
+                Loading session grounding...
+            </div>
+            <hr>
+            <h2>Debug Trace</h2>
+            <pre id="debug-output">No request yet.</pre>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
