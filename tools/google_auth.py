@@ -17,6 +17,7 @@ Expected files in same folder:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Final
 
@@ -32,9 +33,12 @@ SCOPES: Final[list[str]] = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
-BASE_DIR: Final[Path] = Path(__file__).resolve().parents[2] / "Demo14_RPA"
-CREDENTIALS_FILE: Final[Path] = BASE_DIR / "credentials.json"
-TOKEN_FILE: Final[Path] = BASE_DIR / "google_token.json"
+REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
+WORKSPACE_DIR: Final[Path] = Path(
+    os.environ.get("GOOGLE_WORKSPACE_DIR", str(REPO_ROOT))
+)
+CREDENTIALS_FILE: Final[Path] = WORKSPACE_DIR / "credentials.json"
+TOKEN_FILE: Final[Path] = WORKSPACE_DIR / "google_token.json"
 
 
 def load_credentials() -> Credentials:
@@ -160,14 +164,14 @@ def _resolve_credentials_file() -> Path:
     if CREDENTIALS_FILE.exists():
         return CREDENTIALS_FILE
 
-    matches = sorted(BASE_DIR.glob("client_secret*.json"))
+    matches = sorted(WORKSPACE_DIR.glob("client_secret*.json"))
 
     if len(matches) == 1:
         return matches[0]
 
     if len(matches) > 1:
         raise RuntimeError(
-            f"Multiple OAuth JSON files found in {BASE_DIR}. "
+            f"Multiple OAuth JSON files found in {WORKSPACE_DIR}. "
             f"Rename one to {CREDENTIALS_FILE.name}."
         )
 

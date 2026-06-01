@@ -74,8 +74,9 @@ answer.
 
 ## Watcher
 
-The watcher is currently a pass-through rule engine. It exists to make request inspection explicit
-and to leave a clean hook for future policy enforcement. The payload it sees includes:
+The watcher is currently a passive auditor. It evaluates deterministic rules, records notes, and
+always allows the request to continue. It exists to make request inspection explicit and to leave a
+clean hook for future policy enforcement. The payload it sees includes:
 
 - user message
 - selected model
@@ -140,5 +141,7 @@ The latest measured retrieval and chat warm p95 values were:
 ## Operational Notes
 
 - `OLLAMA_FAKE=1` enables deterministic demo and CI mode.
+- `GOBOOK_SECRETS_FILE`, `GOOGLE_WORKSPACE_DIR`, and `WHATSAPP_PROFILE_DIR` can override the
+  default repo-root paths when needed.
 - `secrets.json` is gitignored and should only hold the GoBook username/password schema.
 - Generated eval/runtime artifacts stay out of version control via `.gitignore`.

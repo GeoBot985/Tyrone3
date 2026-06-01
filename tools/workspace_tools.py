@@ -1,8 +1,8 @@
 """Workspace tools for Tyrone Personal Mode.
 
-This module shells out to the already-working Demo14_RPA scripts so Tyrone can expose
-Gmail, Calendar, Sheets, and WhatsApp actions from Personal Mode without duplicating
-the full implementations here.
+This module shells out to the companion Gmail, Calendar, Sheets, and WhatsApp scripts so
+Tyrone can expose workspace actions from Personal Mode without duplicating the full
+implementations here.
 """
 
 from __future__ import annotations

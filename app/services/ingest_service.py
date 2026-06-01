@@ -3,7 +3,7 @@ import shutil
 import sys
 import uuid
 
-# Ensure rag can be imported from Demo5 root if needed
+# Ensure rag can be imported from the repo root when the service is used standalone.
 current_dir = os.path.dirname(os.path.abspath(__file__))
 demo5_root = os.path.abspath(os.path.join(current_dir, "../../"))
 if demo5_root not in sys.path:

@@ -6,6 +6,9 @@ Tyrone 3.0 is a local-first FastAPI + Ollama assistant with three modes:
 - `document` for hybrid RAG over a DuckDB corpus with evidence and confidence scoring
 - `personal` for memory retrieval plus tool routing for GoBook and workspace tasks
 
+It also has a deterministic demo/eval path via `OLLAMA_FAKE=1`, which keeps screenshots,
+scorecards, and CI-friendly runs stable even when Ollama is unavailable.
+
 ## What It Looks Like
 
 ```mermaid
@@ -74,6 +77,13 @@ If you use GoBook or personal tool routing, create `secrets.json` with:
 
 `secrets.example.json` shows the same schema with placeholder values.
 
+Optional environment overrides:
+
+- `OLLAMA_FAKE=1` uses deterministic fake model responses for demo/eval runs
+- `GOBOOK_SECRETS_FILE` points to a GoBook credentials JSON if you do not want to use `secrets.json`
+- `GOOGLE_WORKSPACE_DIR` points the Google OAuth helpers at a different workspace folder
+- `WHATSAPP_PROFILE_DIR` overrides the persistent WhatsApp profile path
+
 ## Run The App
 
 ```bash
@@ -133,3 +143,10 @@ model, watcher, eval methodology, and the config tuning decisions from Sprints 3
 ## Screenshots
 
 Portfolio screenshots live in [`docs/img/`](docs/img/).
+
+## Repository Notes
+
+- The repo is self-contained from its own root; old `Demo5` and `Demo14_RPA` folder names are no
+  longer required.
+- `watcher.py` currently acts as a passive auditor: it evaluates rules and records notes, but does
+  not block requests.

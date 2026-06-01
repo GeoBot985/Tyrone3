@@ -16,6 +16,7 @@ Design:
 
 from __future__ import annotations
 
+import os
 import mimetypes
 import re
 import time
@@ -29,8 +30,13 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 WHATSAPP_URL = "https://web.whatsapp.com/"
 
-BASE_DIR = Path(__file__).resolve().parents[2] / "Demo14_RPA"
-PROFILE_DIR = BASE_DIR / "runtime_data" / "whatsapp_profile"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PROFILE_DIR = Path(
+    os.environ.get(
+        "WHATSAPP_PROFILE_DIR",
+        str(REPO_ROOT / "runtime_data" / "whatsapp_profile"),
+    )
+)
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 DOCUMENT_SUFFIXES = {

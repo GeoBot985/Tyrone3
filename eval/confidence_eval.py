@@ -18,6 +18,12 @@ def _bucket(label: str | None) -> str:
     return label or "missing"
 
 
+def _is_refusal_reply(reply: str, case: dict[str, Any]) -> bool:
+    if case.get("should_refuse"):
+        return True
+    return reply.strip().startswith("Insufficient information")
+
+
 def main() -> int:
     cases = [
         case
@@ -41,7 +47,7 @@ def main() -> int:
                 reply = answer_payload.get("reply") or ""
                 evidence = answer_payload.get("evidence") or []
                 confidence = answer_payload.get("confidence") or {}
-                if case.get("should_refuse"):
+                if _is_refusal_reply(reply, case):
                     grade = {
                         "grounded_in_evidence": False,
                         "answers_question": False,

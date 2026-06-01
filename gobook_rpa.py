@@ -1,6 +1,7 @@
 """GoBook RPA helpers for Tyrone Personal Mode.
 
-Credentials are loaded from `Demo5/secrets.json`.
+Credentials default to `secrets.json` at the repo root, but can be overridden with the
+`GOBOOK_SECRETS_FILE` environment variable.
 All browser actions use a temporary Playwright profile and are intended to be called only from
 Tyrone's Personal Mode endpoints.
 """
@@ -9,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import os
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -20,7 +22,7 @@ from playwright.async_api import async_playwright
 
 
 BASE_DIR = Path(__file__).resolve().parent
-SECRETS_FILE = BASE_DIR / "secrets.json"
+SECRETS_FILE = Path(os.environ.get("GOBOOK_SECRETS_FILE", str(BASE_DIR / "secrets.json")))
 LOGIN_URL = "https://gobook.co.za/"
 BOOKINGS_URL = "https://gobook.co.za/Bookings/Client"
 

@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from datetime import UTC, datetime
 
@@ -185,32 +186,47 @@ def list_personal_memories(conn, mode: str = "personal") -> list[dict]:
 
 
 def bootstrap_personal_data(conn):
-    # Check if Cornelia already exists
+    seed_name = os.environ.get("PERSONAL_BOOTSTRAP_NAME", "Cornelia").strip() or "Cornelia"
+    seed_relationship = os.environ.get("PERSONAL_BOOTSTRAP_RELATIONSHIP", "wife").strip() or "wife"
+    seed_alias = os.environ.get("PERSONAL_BOOTSTRAP_ALIAS", "my wife").strip() or "my wife"
+    seed_fact = os.environ.get(
+        "PERSONAL_BOOTSTRAP_FACT",
+        f"{seed_name}'s birthday is on 22 November.",
+    ).strip()
+    seed_note = os.environ.get(
+        "PERSONAL_BOOTSTRAP_NOTE",
+        "Birthday is 22nd November",
+    ).strip()
+
+    # Demo seed data for the personal store. Defaults preserve the current test fixtures but can
+    # be overridden through environment variables for a different portfolio/demo narrative.
     exists = conn.execute(
-        "SELECT 1 FROM personal_entities WHERE canonical_name = 'Cornelia'"
+        "SELECT 1 FROM personal_entities WHERE canonical_name = ?",
+        [seed_name],
     ).fetchone()
     if not exists:
         insert_personal_entity(
             conn,
             {
-                "canonical_name": "Cornelia",
+                "canonical_name": seed_name,
                 "entity_type": "person",
-                "relationship_to_user": "wife",
-                "aliases_json": json.dumps(["my wife"]),
-                "notes_json": json.dumps(["Birthday is 22nd November"]),
+                "relationship_to_user": seed_relationship,
+                "aliases_json": json.dumps([seed_alias]),
+                "notes_json": json.dumps([seed_note]),
             },
         )
-        print("Bootstrapped Cornelia entity.")
+        print(f"Bootstrapped {seed_name} entity.")
 
     # Check if we have some memories
     mem_exists = conn.execute(
-        "SELECT 1 FROM personal_memories WHERE raw_user_input LIKE '%Cornelia%'"
+        "SELECT 1 FROM personal_memories WHERE raw_user_input LIKE ?",
+        [f"%{seed_name}%"],
     ).fetchone()
     if not mem_exists:
         insert_personal_memory(
             conn,
             {
-                "raw_user_input": "Cornelia's birthday is on 22 November.",
+                "raw_user_input": seed_fact,
                 "mode": "personal",
                 "category": "fact",
             },

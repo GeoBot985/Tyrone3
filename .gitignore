@@ -8,8 +8,10 @@ test.pdf
 demo5.out.log
 demo5.err.log
 consolidated.txt
+consolidated_py_*.txt
 temp_uploads/
 rag_uploads/
+runtime_data/
 .coverage
 .pytest_cache/
 __pycache__/

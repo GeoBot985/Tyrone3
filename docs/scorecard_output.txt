@@ -1,0 +1,19 @@
+==============================================================================
+ Tyrone 3.0 - Portfolio Quality Scorecard
+==============================================================================
+Metric                   Status   Value                      Target
+------------------------------------------------------------------------------
+tests                    PASS     148 passed                 100% pass
+coverage                 PASS     93%                        >=90%
+lint                     PASS     all checks passed          0 errors
+types                    PASS     0 errors / 29 files        0 errors
+dead_code                PASS     0 findings                 0 findings
+retrieval_recall         PASS     recall@k=100.0% mrr=0.974  >=90%
+faithfulness             PASS     100.0%                     >=90%
+refusal_accuracy         PASS     100.0%                     >=90%
+confidence_calibration   PASS     100.0%                     >=90%
+intent_routing           PASS     100.0%                     >=90%
+latency                  PASS     retrieval p95=38.6ms chat p95=27.3ms p95 within budget
+------------------------------------------------------------------------------
+Result: ALL GATES PASS
+==============================================================================

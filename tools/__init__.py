@@ -1,2 +1,1 @@
-"""Demo5 tools package."""
-
+"""Workspace and personal-mode tools package."""
