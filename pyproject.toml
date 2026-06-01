@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tyrone3"
+version = "0.1.0"
+description = "Tyrone 3.0 assistant"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "httpx",
+    "pydantic",
+    "jinja2",
+    "duckdb",
+    "pymupdf",
+    "requests",
+    "numpy",
+    "python-multipart",
+    "pytesseract==0.3.13",
+    "python-docx",
+    "tzlocal",
+    "markitdown",
+    "openpyxl",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "coverage",
+    "ruff",
+    "mypy",
+    "vulture",
+    "httpx",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["app", "rag", "tools", "tests"]
+exclude = [
+    "tests",
+    "tools",
+    "eval",
+    "watcher.py",
+    "gobook_rpa.py",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "E402", "B008", "B905", "UP017"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+ignore_missing_imports = true
+follow_imports = "silent"
+files = ["app", "rag"]
+
+[tool.coverage.run]
+omit = [
+    "rag/manual_test_rag.py",
+    "rag/embedder.py",
+    "rag/markitdown_extractor.py",
+    "rag/ocr_service.py",
+]

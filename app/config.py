@@ -29,8 +29,8 @@ DB_PATH = RAG_DB_PATH
 DEFAULT_MODEL = "granite4:3b"
 DEFAULT_MODE = "chat"
 AGENT_PURPOSE = "General assistant with chat, document, and personal modes"
-DEFAULT_LOCATION = "unknown" # Can be overridden by env or specific config
-DEFAULT_TIMEZONE = None # If None, use system timezone
+DEFAULT_LOCATION = "unknown"  # Can be overridden by env or specific config
+DEFAULT_TIMEZONE = None  # If None, use system timezone
 
 # Ingestion Concurrency (Spec 021)
 INGESTION_MAX_WORKERS = min(4, os.cpu_count() or 1)
@@ -68,5 +68,5 @@ DOCUMENT_COVERAGE_SCORE_DROP_THRESHOLD = 0.12
 DOCUMENT_COVERAGE_CONSECUTIVE_DROP_LIMIT = 2
 DOCUMENT_MIN_USEFUL_SCORE = 0.18
 
-CONFIDENCE_HIGH_THRESHOLD = 0.80
-CONFIDENCE_MEDIUM_THRESHOLD = 0.55
+CONFIDENCE_HIGH_THRESHOLD = 0.45
+CONFIDENCE_MEDIUM_THRESHOLD = 0.25

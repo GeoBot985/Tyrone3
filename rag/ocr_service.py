@@ -1,14 +1,14 @@
 import io
 import os
 import shutil
-import time
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import fitz
 import pytesseract
-from PIL import Image
 from app.config import PDF_MIN_TEXT_THRESHOLD_FOR_NO_OCR
+from PIL import Image
 
 
 def resolve_tesseract_cmd() -> str | None:
@@ -36,15 +36,18 @@ TESSERACT_CMD = resolve_tesseract_cmd()
 if TESSERACT_CMD:
     pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
+
 def is_scanned_pdf(text_length: int) -> bool:
     return text_length < PDF_MIN_TEXT_THRESHOLD_FOR_NO_OCR
+
 
 def render_pdf_page_to_image(pdf_path: str, page_index: int, dpi: int = 200) -> Image.Image:
     with fitz.open(pdf_path) as doc:
         page = doc[page_index]
-        pix = page.get_pixmap(matrix=fitz.Matrix(dpi/72, dpi/72))
+        pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72))
         img_data = pix.tobytes("png")
         return Image.open(io.BytesIO(img_data))
+
 
 class OCRProgressTracker:
     def __init__(self, total_pages: int):
@@ -55,16 +58,21 @@ class OCRProgressTracker:
     def increment(self):
         with self.lock:
             self.completed_pages += 1
-            print(f"Ingestion Progress | mode: OCR | pages: {self.completed_pages}/{self.total_pages} complete")
+            print(
+                f"Ingestion Progress | mode: OCR | pages: {self.completed_pages}/{self.total_pages} complete"
+            )
 
-def process_page_ocr(pdf_path: str, page_index: int, tracker: OCRProgressTracker | None = None) -> dict:
+
+def process_page_ocr(
+    pdf_path: str, page_index: int, tracker: OCRProgressTracker | None = None
+) -> dict:
     """Returns detailed per-page OCR result"""
     result = {
         "page_index": page_index,
         "text": "",
         "success": False,
         "render_time": 0.0,
-        "ocr_time": 0.0
+        "ocr_time": 0.0,
     }
     try:
         t0 = time.time()
@@ -80,12 +88,13 @@ def process_page_ocr(pdf_path: str, page_index: int, tracker: OCRProgressTracker
         result["success"] = True
     except Exception as e:
         print(f"Error OCRing page {page_index}: {e}")
-        result["text"] = f"[Error processing page {page_index+1}]"
+        result["text"] = f"[Error processing page {page_index + 1}]"
 
     if tracker:
         tracker.increment()
 
     return result
+
 
 def run_ocr_parallel(pdf_path: str, max_workers: int = 4) -> tuple[str, int, list[int], dict]:
     with fitz.open(pdf_path) as doc:
@@ -99,7 +108,9 @@ def run_ocr_parallel(pdf_path: str, max_workers: int = 4) -> tuple[str, int, lis
     tracker = OCRProgressTracker(page_count)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_page = {executor.submit(process_page_ocr, pdf_path, i, tracker): i for i in range(page_count)}
+        future_to_page = {
+            executor.submit(process_page_ocr, pdf_path, i, tracker): i for i in range(page_count)
+        }
         for future in future_to_page:
             res = future.result()
             results.append((res["page_index"], res["text"]))
@@ -113,14 +124,15 @@ def run_ocr_parallel(pdf_path: str, max_workers: int = 4) -> tuple[str, int, lis
 
     full_text = ""
     for i, text in results:
-        full_text += f"[Page {i+1}]\n{text}\n\n"
+        full_text += f"[Page {i + 1}]\n{text}\n\n"
 
     granular_timings = {
         "ocr_render": round(total_render_time, 4),
-        "ocr_recognize": round(total_ocr_time, 4)
+        "ocr_recognize": round(total_ocr_time, 4),
     }
 
     return full_text, page_count, failed_pages, granular_timings
+
 
 def clean_ocr_text(text: str) -> str:
     lines = text.splitlines()
@@ -131,6 +143,7 @@ def clean_ocr_text(text: str) -> str:
             cleaned_lines.append(stripped)
 
     return "\n".join(cleaned_lines)
+
 
 def extract_text_with_ocr(pdf_path: str, max_workers: int = 4) -> dict:
     """
@@ -158,7 +171,7 @@ def extract_text_with_ocr(pdf_path: str, max_workers: int = 4) -> dict:
             "ocr_char_count": 0,
             "ocr_page_count": 0,
             "failed_pages": [],
-            "error": "OCR engine not available. Please install Tesseract or set TESSERACT_CMD."
+            "error": "OCR engine not available. Please install Tesseract or set TESSERACT_CMD.",
         }
     except Exception as e:
         return {
@@ -167,11 +180,13 @@ def extract_text_with_ocr(pdf_path: str, max_workers: int = 4) -> dict:
             "ocr_char_count": 0,
             "ocr_page_count": 0,
             "failed_pages": [],
-            "error": f"OCR initialization failed: {str(e)}"
+            "error": f"OCR initialization failed: {str(e)}",
         }
 
     try:
-        raw_text, page_count, failed_pages, granular_timings = run_ocr_parallel(pdf_path, max_workers=max_workers)
+        raw_text, page_count, failed_pages, granular_timings = run_ocr_parallel(
+            pdf_path, max_workers=max_workers
+        )
         cleaned_text = clean_ocr_text(raw_text)
 
         char_count = len(cleaned_text)
@@ -183,11 +198,11 @@ def extract_text_with_ocr(pdf_path: str, max_workers: int = 4) -> dict:
             "ocr_page_count": page_count,
             "failed_pages": failed_pages,
             "granular_timings": granular_timings,
-            "error": None
+            "error": None,
         }
 
         if char_count < PDF_MIN_TEXT_THRESHOLD_FOR_NO_OCR:
-             res["error"] = "OCR failed: insufficient text extracted from scanned PDF."
+            res["error"] = "OCR failed: insufficient text extracted from scanned PDF."
 
         return res
     except Exception as e:
@@ -197,5 +212,5 @@ def extract_text_with_ocr(pdf_path: str, max_workers: int = 4) -> dict:
             "ocr_char_count": 0,
             "ocr_page_count": 0,
             "failed_pages": [],
-            "error": f"OCR processing failed: {str(e)}"
+            "error": f"OCR processing failed: {str(e)}",
         }

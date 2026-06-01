@@ -1,4 +1,6 @@
-def build_personal_grounded_prompt(query: str, resolved_entities: list[dict], memories: list[dict]) -> str:
+def build_personal_grounded_prompt(
+    query: str, resolved_entities: list[dict], memories: list[dict]
+) -> str:
     """
     Builds a strict retrieved-store-only prompt for Personal Mode.
     The LLM may answer only from the provided personal-store records.

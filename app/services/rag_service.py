@@ -1,20 +1,37 @@
 import os
+from typing import Any
 
 from rag.db import (
-    get_connection, list_documents, delete_document, clear_corpus,
-    get_corpus_stats, get_document_by_id, get_all_chunks_for_document,
-    find_exact_chunk
+    clear_corpus,
+    delete_document,
+    find_exact_chunk,
+    get_all_chunks_for_document,
+    get_connection,
+    get_corpus_stats,
+    get_document_by_id,
+    list_documents,
 )
-from rag.search import search, detect_retrieval_mode
+from rag.search import detect_retrieval_mode, search
+
 from app.config import (
-    DB_PATH, VECTOR_WEIGHT, LEXICAL_WEIGHT,
-    CANDIDATE_POOL_SIZE, PER_DOC_CAP,
-    SINGLE_DOC_CANDIDATE_POOL_SIZE, SINGLE_DOC_PER_DOC_CAP,
-    ENUMERATION_TOP_K, ENUMERATION_PER_DOC_CAP, ENUMERATION_LEXICAL_MATCH_CAP,
-    DOCUMENT_NARROW_TOP_K, DOCUMENT_COVERAGE_TOP_K, DOCUMENT_MAX_COVERAGE_CHUNKS,
-    DOCUMENT_COVERAGE_SINGLE_DOC_PER_DOC_CAP, DOCUMENT_COVERAGE_MULTI_DOC_PER_DOC_CAP,
-    DOCUMENT_COVERAGE_SCORE_DROP_THRESHOLD, DOCUMENT_COVERAGE_CONSECUTIVE_DROP_LIMIT,
+    CANDIDATE_POOL_SIZE,
+    DB_PATH,
+    DOCUMENT_COVERAGE_CONSECUTIVE_DROP_LIMIT,
+    DOCUMENT_COVERAGE_MULTI_DOC_PER_DOC_CAP,
+    DOCUMENT_COVERAGE_SCORE_DROP_THRESHOLD,
+    DOCUMENT_COVERAGE_SINGLE_DOC_PER_DOC_CAP,
+    DOCUMENT_COVERAGE_TOP_K,
+    DOCUMENT_MAX_COVERAGE_CHUNKS,
     DOCUMENT_MIN_USEFUL_SCORE,
+    DOCUMENT_NARROW_TOP_K,
+    ENUMERATION_LEXICAL_MATCH_CAP,
+    ENUMERATION_PER_DOC_CAP,
+    ENUMERATION_TOP_K,
+    LEXICAL_WEIGHT,
+    PER_DOC_CAP,
+    SINGLE_DOC_CANDIDATE_POOL_SIZE,
+    SINGLE_DOC_PER_DOC_CAP,
+    VECTOR_WEIGHT,
 )
 from app.services.document_coverage import detect_document_coverage_mode
 
@@ -47,7 +64,9 @@ def compact_retrieved_chunks_for_prompt(chunks: list[dict], response_format: str
         if not text:
             continue
 
-        normalized_text = "\n".join(dict.fromkeys(line.strip() for line in text.splitlines() if line.strip()))
+        normalized_text = "\n".join(
+            dict.fromkeys(line.strip() for line in text.splitlines() if line.strip())
+        )
         dedupe_key = (
             chunk.get("document_id"),
             chunk.get("chunk_index"),
@@ -57,17 +76,21 @@ def compact_retrieved_chunks_for_prompt(chunks: list[dict], response_format: str
             continue
         seen.add(dedupe_key)
 
-        compacted.append({
-            **chunk,
-            "text": normalized_text,
-        })
+        compacted.append(
+            {
+                **chunk,
+                "text": normalized_text,
+            }
+        )
 
     if response_format in {"list", "table"}:
         compacted.sort(
             key=lambda item: (
                 item.get("document_name", ""),
                 item.get("sheet_name") or "",
-                item.get("row_index") if item.get("row_index") is not None else item.get("chunk_index", 0),
+                item.get("row_index")
+                if item.get("row_index") is not None
+                else item.get("chunk_index", 0),
                 item.get("chunk_index", 0),
             )
         )
@@ -75,11 +98,13 @@ def compact_retrieved_chunks_for_prompt(chunks: list[dict], response_format: str
     return compacted
 
 
-def _apply_coverage_stabilization(chunks: list[dict], max_chunks: int) -> tuple[list[dict], bool, str]:
+def _apply_coverage_stabilization(
+    chunks: list[dict], max_chunks: int
+) -> tuple[list[dict], bool, str]:
     if not chunks:
         return [], False, "no_verified_chunks"
 
-    selected = []
+    selected: list[dict] = []
     truncated = False
     reason = "candidate_pool_exhausted"
     consecutive_drops = 0
@@ -93,7 +118,10 @@ def _apply_coverage_stabilization(chunks: list[dict], max_chunks: int) -> tuple[
             reason = "low_score_floor_reached"
             break
 
-        if previous_score is not None and (previous_score - score) >= DOCUMENT_COVERAGE_SCORE_DROP_THRESHOLD:
+        if (
+            previous_score is not None
+            and (previous_score - score) >= DOCUMENT_COVERAGE_SCORE_DROP_THRESHOLD
+        ):
             consecutive_drops += 1
         else:
             consecutive_drops = 0
@@ -131,7 +159,7 @@ def get_rag_context(
         "error": str | None
     }
     """
-    result = {
+    result: dict[str, Any] = {
         "enabled": True,
         "query": query,
         "chunks": [],
@@ -152,7 +180,7 @@ def get_rag_context(
             "retrieval_verified_chunks_count": 0,
             "retrieval_chunks_used_for_prompt": 0,
         },
-        "error": None
+        "error": None,
     }
 
     if not os.path.exists(DB_PATH):
@@ -163,41 +191,63 @@ def get_rag_context(
     try:
         conn = get_connection(DB_PATH)
 
-        single_doc_mode = bool(document_ids) and len(document_ids) == 1
+        single_doc_mode = document_ids is not None and len(document_ids) == 1
         retrieval_mode = detect_retrieval_mode(query)
         coverage_mode = detect_document_coverage_mode(query, response_format)
         coverage_required = coverage_mode == "coverage_required"
 
         requested_top_k = DOCUMENT_COVERAGE_TOP_K if coverage_required else top_k
-        max_chunks = DOCUMENT_MAX_COVERAGE_CHUNKS if coverage_required else max(top_k, DOCUMENT_NARROW_TOP_K)
-        base_candidate_pool_size = SINGLE_DOC_CANDIDATE_POOL_SIZE if single_doc_mode else CANDIDATE_POOL_SIZE
+        max_chunks = (
+            DOCUMENT_MAX_COVERAGE_CHUNKS if coverage_required else max(top_k, DOCUMENT_NARROW_TOP_K)
+        )
+        base_candidate_pool_size = (
+            SINGLE_DOC_CANDIDATE_POOL_SIZE if single_doc_mode else CANDIDATE_POOL_SIZE
+        )
         base_per_doc_cap = SINGLE_DOC_PER_DOC_CAP if single_doc_mode else PER_DOC_CAP
 
         if coverage_required:
             effective_top_k = min(max_chunks, max(requested_top_k, DOCUMENT_COVERAGE_TOP_K))
-            effective_per_doc_cap = DOCUMENT_COVERAGE_SINGLE_DOC_PER_DOC_CAP if single_doc_mode else DOCUMENT_COVERAGE_MULTI_DOC_PER_DOC_CAP
+            effective_per_doc_cap = (
+                DOCUMENT_COVERAGE_SINGLE_DOC_PER_DOC_CAP
+                if single_doc_mode
+                else DOCUMENT_COVERAGE_MULTI_DOC_PER_DOC_CAP
+            )
         else:
-            effective_top_k = max(top_k, ENUMERATION_TOP_K) if retrieval_mode == "enumeration" else top_k
-            effective_per_doc_cap = max(base_per_doc_cap, ENUMERATION_PER_DOC_CAP) if retrieval_mode == "enumeration" else base_per_doc_cap
+            effective_top_k = (
+                max(top_k, ENUMERATION_TOP_K) if retrieval_mode == "enumeration" else top_k
+            )
+            effective_per_doc_cap = (
+                max(base_per_doc_cap, ENUMERATION_PER_DOC_CAP)
+                if retrieval_mode == "enumeration"
+                else base_per_doc_cap
+            )
 
         candidate_pool_size = max(base_candidate_pool_size, effective_top_k)
         max_attempts = 4 if coverage_required else 3
         total_discarded = 0
         best_verified_chunks = []
-        last_metrics = {}
+        last_metrics: dict[str, Any] = {}
 
         for attempt in range(1, max_attempts + 1):
             search_data = search(
                 conn,
                 query,
-                top_k=min(max_chunks if coverage_required else effective_top_k, effective_top_k * attempt * 2),
+                top_k=min(
+                    max_chunks if coverage_required else effective_top_k,
+                    effective_top_k * attempt * 2,
+                ),
                 document_ids=document_ids,
                 vector_weight=VECTOR_WEIGHT,
                 lexical_weight=LEXICAL_WEIGHT,
                 candidate_pool_size=candidate_pool_size,
-                per_doc_cap=max(effective_per_doc_cap, effective_top_k * attempt if coverage_required else effective_top_k),
+                per_doc_cap=max(
+                    effective_per_doc_cap,
+                    effective_top_k * attempt if coverage_required else effective_top_k,
+                ),
                 retrieval_mode=retrieval_mode,
-                lexical_match_cap=ENUMERATION_LEXICAL_MATCH_CAP if retrieval_mode == "enumeration" else max(effective_top_k * 2, 20),
+                lexical_match_cap=ENUMERATION_LEXICAL_MATCH_CAP
+                if retrieval_mode == "enumeration"
+                else max(effective_top_k * 2, 20),
             )
 
             raw_chunks = search_data.get("results", [])
@@ -214,7 +264,9 @@ def get_rag_context(
                 else (best_verified_chunks[:effective_top_k], False, "narrow_lookup_limit")
             )
 
-            prompt_chunks = compact_retrieved_chunks_for_prompt(stabilized_chunks, response_format)
+            prompt_chunks: list[dict] = compact_retrieved_chunks_for_prompt(
+                stabilized_chunks, response_format
+            )
 
             result["metrics"] = {
                 "eligible_docs": last_metrics.get("eligible_docs", 0),
@@ -224,7 +276,10 @@ def get_rag_context(
                 "retrieval_mode": last_metrics.get("retrieval_mode", retrieval_mode),
                 "region_mode": last_metrics.get("region_mode", "neutral"),
                 "single_doc_mode": single_doc_mode,
-                "per_doc_cap": max(effective_per_doc_cap, effective_top_k * attempt if coverage_required else effective_top_k),
+                "per_doc_cap": max(
+                    effective_per_doc_cap,
+                    effective_top_k * attempt if coverage_required else effective_top_k,
+                ),
                 "requested_top_k": top_k,
                 "effective_top_k": effective_top_k,
                 "lexical_match_cap": last_metrics.get("lexical_match_cap", 0),
@@ -240,7 +295,9 @@ def get_rag_context(
                 "retrieval_verified_chunks_count": len(best_verified_chunks),
                 "retrieval_chunks_used_for_prompt": len(prompt_chunks),
                 "bounded_negative_mode": last_metrics.get("bounded_negative_mode", False),
-                "lexical_normalization_enabled": last_metrics.get("lexical_normalization_enabled", False),
+                "lexical_normalization_enabled": last_metrics.get(
+                    "lexical_normalization_enabled", False
+                ),
                 "normalized_query_tokens": last_metrics.get("normalized_query_tokens", []),
                 "identifier_like_terms": last_metrics.get("identifier_like_terms", []),
                 "exact_lexical_hits": last_metrics.get("exact_lexical_hits", 0),
@@ -251,7 +308,11 @@ def get_rag_context(
                 "merged_candidate_count": last_metrics.get("merged_candidate_count", 0),
             }
 
-            result["chunks"] = best_verified_chunks[:max_chunks] if coverage_required else best_verified_chunks[:effective_top_k]
+            result["chunks"] = (
+                best_verified_chunks[:max_chunks]
+                if coverage_required
+                else best_verified_chunks[:effective_top_k]
+            )
             result["chunks_for_prompt"] = prompt_chunks
 
             if not coverage_required and len(result["chunks"]) >= effective_top_k:
@@ -279,7 +340,7 @@ def get_rag_context(
         if conn:
             try:
                 conn.close()
-            except:
+            except Exception:
                 pass
 
     return result
@@ -302,7 +363,7 @@ def get_full_document_content(document_id: str) -> dict:
         "document_name": None,
         "full_text": "",
         "chunk_count": 0,
-        "error": None
+        "error": None,
     }
 
     if not os.path.exists(DB_PATH):
@@ -329,7 +390,7 @@ def get_full_document_content(document_id: str) -> dict:
         if conn:
             try:
                 conn.close()
-            except:
+            except Exception:
                 pass
 
     return result
@@ -345,7 +406,7 @@ def delete_document_service(document_id: str) -> dict:
     finally:
         try:
             conn.close()
-        except:
+        except Exception:
             pass
 
 
@@ -359,7 +420,7 @@ def clear_corpus_service() -> dict:
     finally:
         try:
             conn.close()
-        except:
+        except Exception:
             pass
 
 
@@ -367,11 +428,7 @@ def get_corpus_stats_service() -> dict:
     if not os.path.exists(DB_PATH):
         return {
             "ok": True,
-            "stats": {
-                "total_documents": 0,
-                "total_chunks": 0,
-                "last_ingestion_at": None
-            }
+            "stats": {"total_documents": 0, "total_chunks": 0, "last_ingestion_at": None},
         }
     try:
         conn = get_connection(DB_PATH)
@@ -382,34 +439,22 @@ def get_corpus_stats_service() -> dict:
     finally:
         try:
             conn.close()
-        except:
+        except Exception:
             pass
 
 
 def list_indexed_documents() -> dict:
     if not os.path.exists(DB_PATH):
-        return {
-            "ok": True,
-            "documents": [],
-            "error": None
-        }
+        return {"ok": True, "documents": [], "error": None}
 
     try:
         conn = get_connection(DB_PATH)
         docs = list_documents(conn)
-        return {
-            "ok": True,
-            "documents": docs,
-            "error": None
-        }
+        return {"ok": True, "documents": docs, "error": None}
     except Exception as e:
-        return {
-            "ok": False,
-            "documents": [],
-            "error": str(e)
-        }
+        return {"ok": False, "documents": [], "error": str(e)}
     finally:
         try:
             conn.close()
-        except:
+        except Exception:
             pass

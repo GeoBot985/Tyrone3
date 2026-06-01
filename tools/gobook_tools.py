@@ -52,7 +52,17 @@ def detect_rpa_intent(message: str) -> str | None:
         return "cancel"
     if re.search(r"\bcancel\b", text) and has_booking_shape:
         return "cancel"
-    if any(term in text for term in ("open courts", "check for open courts", "available courts", "courts open")):
+    if any(
+        term in text
+        for term in (
+            "open courts",
+            "check for open courts",
+            "available courts",
+            "courts open",
+            "what courts are open",
+            "court availability",
+        )
+    ) or (("court" in text or "courts" in text) and "open" in text and has_booking_shape):
         return "open_courts"
     if any(term in text for term in ("upcoming bookings", "my bookings", "list bookings", "show bookings")):
         return "list"
@@ -61,7 +71,7 @@ def detect_rpa_intent(message: str) -> str | None:
     has_book_word = bool(re.search(r"\bbook\b", text))
     if any(term in text for term in ("book court", "make booking", "new booking", "book squash", "book the court", "please book")):
         return "book"
-    if has_gobook_marker and (has_booking_shape or any(term in text for term in ("book", "open", "available", "upcoming"))):
+    if has_gobook_marker and (has_booking_shape or any(term in text for term in ("book court", "book squash", "book the court"))):
         return "book"
     if has_book_word and has_booking_shape:
         return "book"

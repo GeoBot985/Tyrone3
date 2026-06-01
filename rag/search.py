@@ -1,15 +1,44 @@
-import numpy as np
 import re
+
+import numpy as np
 
 from .db import get_all_embeddings
 from .embedder import embed_text
 
-
 _QUERY_FOCUS_STOPWORDS = {
-    "show", "list", "extract", "summarize", "summary", "what", "which", "give", "provide",
-    "find", "from", "with", "that", "this", "there", "here", "into", "about", "under",
-    "records", "record", "rows", "entries", "all", "our", "the", "and", "for", "are",
-    "any", "please", "table", "tabulate",
+    "show",
+    "list",
+    "extract",
+    "summarize",
+    "summary",
+    "what",
+    "which",
+    "give",
+    "provide",
+    "find",
+    "from",
+    "with",
+    "that",
+    "this",
+    "there",
+    "here",
+    "into",
+    "about",
+    "under",
+    "records",
+    "record",
+    "rows",
+    "entries",
+    "all",
+    "our",
+    "the",
+    "and",
+    "for",
+    "are",
+    "any",
+    "please",
+    "table",
+    "tabulate",
 }
 
 
@@ -152,7 +181,9 @@ def _score_lexical_full_corpus(query: str, item: dict) -> tuple[float, list[str]
     query_tokens = _tokenize(query)
     normalized_query_tokens = normalize_tokens(query_tokens)
     text_tokens, normalized_text_tokens = tokenize_for_lexical_matching(text)
-    doc_tokens, normalized_doc_tokens = tokenize_for_lexical_matching(item.get("document_name") or "")
+    doc_tokens, normalized_doc_tokens = tokenize_for_lexical_matching(
+        item.get("document_name") or ""
+    )
     matched_tokens_original = sorted(query_tokens.intersection(text_tokens))
     matched_tokens_normalized = sorted(
         normalized_query_tokens.intersection(normalized_text_tokens) - set(matched_tokens_original)
@@ -229,7 +260,9 @@ def _collect_lexical_candidates(all_items: list[dict], query: str) -> tuple[list
             continue
 
         matched_focus_tokens = sorted(
-            supported_focus_tokens.intersection(set(debug["matched_tokens_original"]) | set(debug["matched_tokens_normalized"]))
+            supported_focus_tokens.intersection(
+                set(debug["matched_tokens_original"]) | set(debug["matched_tokens_normalized"])
+            )
         )
         missing_focus_tokens = sorted(supported_focus_tokens - set(matched_focus_tokens))
 
@@ -279,7 +312,9 @@ def _collect_lexical_candidates(all_items: list[dict], query: str) -> tuple[list
     return lexical_candidates, metrics
 
 
-def _merge_candidates(lexical_candidates: list[dict], vector_candidates: list[dict], candidate_pool_size: int) -> list[dict]:
+def _merge_candidates(
+    lexical_candidates: list[dict], vector_candidates: list[dict], candidate_pool_size: int
+) -> list[dict]:
     merged = {}
 
     for candidate in lexical_candidates:
@@ -317,29 +352,35 @@ def _merge_candidates(lexical_candidates: list[dict], vector_candidates: list[di
         item = candidate["item"]
         key = (item["document_id"], item["chunk_index"], item["text"])
         if key in merged:
-            merged[key]["lexical_score"] = max(merged[key]["lexical_score"], candidate["lexical_score"])
-            merged[key]["match_types"] = list(dict.fromkeys(merged[key]["match_types"] + candidate["match_types"]))
-            merged[key]["lexical_debug"]["matched_tokens_original"] = sorted(set(
-                merged[key]["lexical_debug"]["matched_tokens_original"] + candidate["lexical_debug"]["matched_tokens_original"]
-            ))
-            merged[key]["lexical_debug"]["matched_tokens_normalized"] = sorted(set(
-                merged[key]["lexical_debug"]["matched_tokens_normalized"] + candidate["lexical_debug"]["matched_tokens_normalized"]
-            ))
-            merged[key]["matched_focus_tokens"] = sorted(set(
-                merged[key].get("matched_focus_tokens", []) + candidate.get("matched_focus_tokens", [])
-            ))
+            merged[key]["lexical_score"] = max(
+                merged[key]["lexical_score"], candidate["lexical_score"]
+            )
+            merged[key]["match_types"] = list(
+                dict.fromkeys(merged[key]["match_types"] + candidate["match_types"])
+            )
+            merged[key]["lexical_debug"]["matched_tokens_original"] = sorted(
+                set(
+                    merged[key]["lexical_debug"]["matched_tokens_original"]
+                    + candidate["lexical_debug"]["matched_tokens_original"]
+                )
+            )
+            merged[key]["lexical_debug"]["matched_tokens_normalized"] = sorted(
+                set(
+                    merged[key]["lexical_debug"]["matched_tokens_normalized"]
+                    + candidate["lexical_debug"]["matched_tokens_normalized"]
+                )
+            )
+            merged[key]["matched_focus_tokens"] = sorted(
+                set(
+                    merged[key].get("matched_focus_tokens", [])
+                    + candidate.get("matched_focus_tokens", [])
+                )
+            )
             continue
-        if len(merged) >= candidate_pool_size + len([c for c in lexical_candidates if c["forced_include"]]):
+        if len(merged) >= candidate_pool_size + len(
+            [c for c in lexical_candidates if c["forced_include"]]
+        ):
             break
-            merged[key] = {
-                "item": item,
-                "lexical_score": candidate["lexical_score"],
-                "vector_score": 0.0,
-                "match_types": candidate["match_types"],
-                "forced_include": candidate["forced_include"],
-                "lexical_debug": candidate["lexical_debug"],
-                "matched_focus_tokens": candidate["matched_focus_tokens"],
-            }
 
     return list(merged.values())
 
@@ -351,11 +392,14 @@ def _collect_enumeration_results(
     lexical_match_cap: int,
 ) -> list[dict]:
     final_results = []
-    doc_counts = {}
+    doc_counts: dict[str, int] = {}
 
     lexical_first = [
-        result for result in scored_results
-        if {"exact_phrase", "exact_token", "normalized_token", "focus_token"}.intersection(result["match_types"])
+        result
+        for result in scored_results
+        if {"exact_phrase", "exact_token", "normalized_token", "focus_token"}.intersection(
+            result["match_types"]
+        )
     ]
 
     for result in lexical_first[:lexical_match_cap]:
@@ -370,7 +414,10 @@ def _collect_enumeration_results(
 
     for result in scored_results:
         key = (result["document_id"], result["chunk_index"], result["text"])
-        if any((item["document_id"], item["chunk_index"], item["text"]) == key for item in final_results):
+        if any(
+            (item["document_id"], item["chunk_index"], item["text"]) == key
+            for item in final_results
+        ):
             continue
         doc_id = result["document_id"]
         count = doc_counts.get(doc_id, 0)
@@ -384,15 +431,27 @@ def _collect_enumeration_results(
     return final_results
 
 
-def search(conn, query: str, top_k=5, document_ids: list[str] | None = None,
-           vector_weight=0.7, lexical_weight=0.3, candidate_pool_size=20, per_doc_cap=2,
-           retrieval_mode: str = "default", lexical_match_cap: int = 100):
+def search(
+    conn,
+    query: str,
+    top_k=5,
+    document_ids: list[str] | None = None,
+    vector_weight=0.7,
+    lexical_weight=0.3,
+    candidate_pool_size=20,
+    per_doc_cap=2,
+    retrieval_mode: str = "default",
+    lexical_match_cap: int = 100,
+):
     all_embeddings_with_meta = get_all_embeddings(conn, document_ids=document_ids)
     region_mode = _query_region_mode(query)
 
     eligible_items = []
     for item in all_embeddings_with_meta:
-        if region_mode == "table_row_preferred" and item.get("region_type") in {"summary_block", "pivot_like"}:
+        if region_mode == "table_row_preferred" and item.get("region_type") in {
+            "summary_block",
+            "pivot_like",
+        }:
             continue
         eligible_items.append(item)
 
@@ -402,54 +461,74 @@ def search(conn, query: str, top_k=5, document_ids: list[str] | None = None,
     vector_candidates = []
     for item in eligible_items:
         v_score = cosine_similarity(query_embedding, item["embedding"])
-        vector_candidates.append({
-            "item": item,
-            "vector_score": float(v_score),
-        })
+        vector_candidates.append(
+            {
+                "item": item,
+                "vector_score": float(v_score),
+            }
+        )
     vector_candidates.sort(key=lambda candidate: candidate["vector_score"], reverse=True)
 
-    merged_candidates = _merge_candidates(lexical_candidates, vector_candidates, candidate_pool_size)
+    merged_candidates = _merge_candidates(
+        lexical_candidates, vector_candidates, candidate_pool_size
+    )
 
     scored_results = []
     for candidate in merged_candidates:
         item = candidate["item"]
         v_score = candidate["vector_score"]
-        l_score = max(candidate["lexical_score"], score_lexical(query, item.get("text"), item.get("document_name")))
+        l_score = max(
+            candidate["lexical_score"],
+            score_lexical(query, item.get("text"), item.get("document_name")),
+        )
         region_boost = 0.0
         if region_mode == "table_row_preferred":
             if item.get("region_type") == "table_row":
                 region_boost = 0.15
             elif item.get("region_type") == "header":
                 region_boost = -0.05
-        elif region_mode == "summary_allowed" and item.get("region_type") in {"summary_block", "pivot_like"}:
+        elif region_mode == "summary_allowed" and item.get("region_type") in {
+            "summary_block",
+            "pivot_like",
+        }:
             region_boost = 0.1
 
         lexical_priority_boost = 0.25 if candidate["forced_include"] else 0.0
         focus_token_boost = min(0.2, 0.1 * len(candidate.get("matched_focus_tokens", [])))
-        final_score = (vector_weight * v_score) + (lexical_weight * l_score) + region_boost + lexical_priority_boost + focus_token_boost
+        final_score = (
+            (vector_weight * v_score)
+            + (lexical_weight * l_score)
+            + region_boost
+            + lexical_priority_boost
+            + focus_token_boost
+        )
 
-        scored_results.append({
-            "document_id": item["document_id"],
-            "document_name": item["document_name"],
-            "ingested_at": item["ingested_at"],
-            "chunk_index": item["chunk_index"],
-            "text": item["text"],
-            "region_type": item.get("region_type"),
-            "sheet_name": item.get("sheet_name"),
-            "row_index": item.get("row_index"),
-            "cell_range": item.get("cell_range"),
-            "vector_score": v_score,
-            "lexical_score": l_score,
-            "region_boost": region_boost,
-            "lexical_priority_boost": lexical_priority_boost,
-            "focus_token_boost": focus_token_boost,
-            "match_types": candidate["match_types"],
-            "forced_include": candidate["forced_include"],
-            "matched_tokens_original": candidate["lexical_debug"]["matched_tokens_original"],
-            "matched_tokens_normalized": candidate["lexical_debug"]["matched_tokens_normalized"],
-            "matched_focus_tokens": candidate.get("matched_focus_tokens", []),
-            "score": float(final_score),
-        })
+        scored_results.append(
+            {
+                "document_id": item["document_id"],
+                "document_name": item["document_name"],
+                "ingested_at": item["ingested_at"],
+                "chunk_index": item["chunk_index"],
+                "text": item["text"],
+                "region_type": item.get("region_type"),
+                "sheet_name": item.get("sheet_name"),
+                "row_index": item.get("row_index"),
+                "cell_range": item.get("cell_range"),
+                "vector_score": v_score,
+                "lexical_score": l_score,
+                "region_boost": region_boost,
+                "lexical_priority_boost": lexical_priority_boost,
+                "focus_token_boost": focus_token_boost,
+                "match_types": candidate["match_types"],
+                "forced_include": candidate["forced_include"],
+                "matched_tokens_original": candidate["lexical_debug"]["matched_tokens_original"],
+                "matched_tokens_normalized": candidate["lexical_debug"][
+                    "matched_tokens_normalized"
+                ],
+                "matched_focus_tokens": candidate.get("matched_focus_tokens", []),
+                "score": float(final_score),
+            }
+        )
 
     scored_results.sort(
         key=lambda result: (
@@ -474,7 +553,7 @@ def search(conn, query: str, top_k=5, document_ids: list[str] | None = None,
         )
     else:
         final_top_k = []
-        doc_counts = {}
+        doc_counts: dict[str, int] = {}
         for result in scored_results:
             doc_id = result["document_id"]
             count = doc_counts.get(doc_id, 0)
@@ -504,8 +583,9 @@ def search(conn, query: str, top_k=5, document_ids: list[str] | None = None,
             "forced_included_chunks": lexical_metrics["forced_included_chunks"],
             "vector_candidate_count": len(vector_candidates[:candidate_pool_size]),
             "merged_candidate_count": len(merged_candidates),
-            "bounded_negative_mode": lexical_metrics["exact_lexical_hits"] == 0 and lexical_metrics["normalized_lexical_hits"] == 0,
+            "bounded_negative_mode": lexical_metrics["exact_lexical_hits"] == 0
+            and lexical_metrics["normalized_lexical_hits"] == 0,
             "retrieval_mode": retrieval_mode,
             "lexical_match_cap": lexical_match_cap,
-        }
+        },
     }

@@ -1,5 +1,4 @@
 import json
-import os
 import re
 
 from rag.personal_db import (
@@ -10,25 +9,83 @@ from rag.personal_db import (
     list_personal_memories,
     resolve_personal_entities,
 )
-from app.config import DB_PATH
 
+from app.config import DB_PATH
 
 NO_FACT_RESPONSE = "I do not have that in your personal store."
 NO_ENTITY_RESPONSE = "I do not have any record for that in your personal store."
 AMBIGUITY_RESPONSE = "The provided personal store data does not clearly identify that person/fact."
 
 STOP_WORDS = {
-    "a", "an", "and", "are", "at", "be", "does", "for", "from", "have",
-    "how", "i", "in", "is", "it", "me", "my", "of", "on", "or", "our",
-    "do", "did", "can", "could", "will", "would", "s",
-    "tell", "that", "the", "their", "there", "they", "this", "to", "was",
-    "we", "what", "when", "where", "who", "why", "you", "your",
+    "a",
+    "an",
+    "and",
+    "are",
+    "at",
+    "be",
+    "does",
+    "for",
+    "from",
+    "have",
+    "how",
+    "i",
+    "in",
+    "is",
+    "it",
+    "me",
+    "my",
+    "of",
+    "on",
+    "or",
+    "our",
+    "do",
+    "did",
+    "can",
+    "could",
+    "will",
+    "would",
+    "s",
+    "tell",
+    "that",
+    "the",
+    "their",
+    "there",
+    "they",
+    "this",
+    "to",
+    "was",
+    "we",
+    "what",
+    "when",
+    "where",
+    "who",
+    "why",
+    "you",
+    "your",
 }
 
 PERSONAL_FACT_TERMS = {
-    "age", "birthday", "called", "communication", "dob", "email", "family",
-    "favorite", "job", "live", "lives", "name", "phone", "relationship",
-    "reside", "resides", "spouse", "stay", "stays", "work", "works",
+    "age",
+    "birthday",
+    "called",
+    "communication",
+    "dob",
+    "email",
+    "family",
+    "favorite",
+    "job",
+    "live",
+    "lives",
+    "name",
+    "phone",
+    "relationship",
+    "reside",
+    "resides",
+    "spouse",
+    "stay",
+    "stays",
+    "work",
+    "works",
 }
 
 TOKEN_SYNONYMS = {
@@ -92,7 +149,11 @@ def _is_question(text: str) -> bool:
         return True
 
     lowered = stripped.lower()
-    return bool(re.match(r"^(who|what|when|where|why|how|is|are|do|does|did|can|could|would|will)\b", lowered))
+    return bool(
+        re.match(
+            r"^(who|what|when|where|why|how|is|are|do|does|did|can|could|would|will)\b", lowered
+        )
+    )
 
 
 def _fact_already_exists(conn, fact_text: str) -> bool:
@@ -115,26 +176,32 @@ def _store_personal_fact_if_statement(conn, text: str) -> bool:
         return False
 
     if not _fact_already_exists(conn, fact_text):
-        insert_personal_memory(conn, {
-            "raw_user_input": fact_text,
-            "normalized_text": normalize_text(fact_text),
-            "mode": "personal",
-            "category": "fact",
-        })
+        insert_personal_memory(
+            conn,
+            {
+                "raw_user_input": fact_text,
+                "normalized_text": normalize_text(fact_text),
+                "mode": "personal",
+                "category": "fact",
+            },
+        )
 
     return True
 
 
-def persist_user_input(text: str, session_id: str = None):
+def persist_user_input(text: str, session_id: str | None = None):
     conn = get_connection(DB_PATH)
     try:
-        insert_personal_memory(conn, {
-            "raw_user_input": text,
-            "normalized_text": normalize_text(text),
-            "session_id": session_id,
-            "mode": "personal",
-            "category": "user_input",
-        })
+        insert_personal_memory(
+            conn,
+            {
+                "raw_user_input": text,
+                "normalized_text": normalize_text(text),
+                "session_id": session_id,
+                "mode": "personal",
+                "category": "user_input",
+            },
+        )
         _store_personal_fact_if_statement(conn, text)
     finally:
         conn.close()
@@ -200,9 +267,8 @@ def _filter_relevant_memories(
 
         overlap_terms = query_terms.intersection(memory_terms)
         score = _score_memory(memory, query_terms, entity_terms)
-        has_strong_match = (
-            len(overlap_terms) >= 2
-            or (query_terms and len(overlap_terms) == len(query_terms))
+        has_strong_match = len(overlap_terms) >= 2 or (
+            query_terms and len(overlap_terms) == len(query_terms)
         )
 
         if score > 0 and has_strong_match:
@@ -222,7 +288,8 @@ def _filter_relevant_memories(
 def _extract_possessive_entity_candidates(query: str) -> set[str]:
     matches = re.findall(r"\b([a-z0-9]+)'s\b", (query or "").lower())
     return {
-        candidate for candidate in matches
+        candidate
+        for candidate in matches
         if candidate not in STOP_WORDS and candidate not in PERSONAL_FACT_TERMS
     }
 
@@ -245,8 +312,7 @@ def _extract_named_entity_candidates(query: str) -> set[str]:
 
 def _query_has_unresolved_entity_reference(query: str) -> bool:
     return bool(
-        _extract_possessive_entity_candidates(query)
-        or _extract_named_entity_candidates(query)
+        _extract_possessive_entity_candidates(query) or _extract_named_entity_candidates(query)
     )
 
 

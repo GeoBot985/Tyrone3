@@ -1,12 +1,13 @@
-from typing import TypedDict, Optional, List, Literal
+from typing import Literal, TypedDict
+
 
 class ChatRequestPayload(TypedDict):
     user_message: str
     selected_model: str
     rag_enabled: bool
-    retrieval_query: Optional[str]
-    retrieval_chunks: List[dict]
-    retrieval_error: Optional[str]
+    retrieval_query: str | None
+    retrieval_chunks: list[dict]
+    retrieval_error: str | None
     final_prompt: str
 
 class RuleResult(TypedDict):
@@ -20,16 +21,16 @@ class WatcherResult(TypedDict):
     allowed: bool
     modified: bool
     payload: ChatRequestPayload
-    watcher_notes: List[str]
-    watcher_error: Optional[str]
-    rule_results: List[RuleResult]
+    watcher_notes: list[str]
+    watcher_error: str | None
+    rule_results: list[RuleResult]
 
-def evaluate_rules(payload: ChatRequestPayload) -> List[RuleResult]:
+def evaluate_rules(payload: ChatRequestPayload) -> list[RuleResult]:
     """
     Runs deterministic rules on the request payload.
     May raise exceptions if logic fails.
     """
-    results: List[RuleResult] = []
+    results: list[RuleResult] = []
 
     # Rule 1: Empty Prompt Check
     final_prompt = payload.get("final_prompt", "")

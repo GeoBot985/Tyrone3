@@ -85,7 +85,9 @@ def normalize_layout_aware_text(text: str, file_type: str) -> dict:
 
     is_two_column, split_at = _is_likely_two_column(lines)
     if is_two_column and split_at is not None:
-        warnings.append("Likely two-column layout detected; applied conservative left-then-right reflow.")
+        warnings.append(
+            "Likely two-column layout detected; applied conservative left-then-right reflow."
+        )
         return {
             "text": _reflow_two_column(lines, split_at),
             "layout_mode": "column_reflow",
@@ -95,7 +97,9 @@ def normalize_layout_aware_text(text: str, file_type: str) -> dict:
         }
 
     if _is_table_like(lines):
-        warnings.append("Table-like spacing detected; preserved row boundaries with spacing normalization.")
+        warnings.append(
+            "Table-like spacing detected; preserved row boundaries with spacing normalization."
+        )
         return {
             "text": _normalize_table_like(lines),
             "layout_mode": "table_like",

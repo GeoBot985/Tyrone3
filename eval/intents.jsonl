@@ -1,0 +1,36 @@
+{"detector":"rpa","expected":"book","id":"rpa_book_1","text":"Book a squash court tomorrow at 17:00 on court 2"}
+{"detector":"rpa","expected":"book","id":"rpa_book_2","text":"Please book court 1 on 2026-06-05 from 18:00 to 19:00"}
+{"detector":"rpa","expected":"cancel","id":"rpa_cancel_1","text":"Cancel my court 1 booking on 2026-06-05 at 18:00"}
+{"detector":"rpa","expected":"cancel","id":"rpa_cancel_2","text":"Delete booking for 2026-06-05 18:00 court 3"}
+{"detector":"rpa","expected":"list","id":"rpa_list_1","text":"Show my upcoming bookings"}
+{"detector":"rpa","expected":"list","id":"rpa_list_2","text":"List bookings for this week"}
+{"detector":"rpa","expected":"open_courts","id":"rpa_open_1","text":"What courts are open on 2026-06-05 between 17:00 and 18:00?"}
+{"detector":"rpa","expected":"open_courts","id":"rpa_open_2","text":"Check court availability for 2026-06-05 16:00-17:00"}
+{"detector":"rpa","expected":null,"id":"rpa_negative_1","text":"I need a report on bookings"}
+{"detector":"rpa","expected":null,"id":"rpa_negative_2","text":"Tell me a joke about courts"}
+{"detector":"workspace","expected":"whatsapp_read","id":"wa_read_1","text":"Summarize my WhatsApp messages with Cornelia"}
+{"detector":"workspace","expected":"whatsapp_read","id":"wa_read_2","text":"Read the latest WhatsApp chat history"}
+{"detector":"workspace","expected":"whatsapp_send","id":"wa_send_1","text":"Send a WhatsApp to Cornelia saying I am running late"}
+{"detector":"workspace","expected":"whatsapp_send","id":"wa_send_2","text":"Text the plumber on WhatsApp: the leak is fixed"}
+{"detector":"workspace","expected":"whatsapp_search","id":"wa_search_1","text":"Search WhatsApp for Cornelia"}
+{"detector":"workspace","expected":"whatsapp_search","id":"wa_search_2","text":"Open the chat with George on WhatsApp"}
+{"detector":"workspace","expected":"gmail_send","id":"gmail_send_1","text":"Compose an email to george@example.com subject: Update body: Here you go"}
+{"detector":"workspace","expected":"gmail_send","id":"gmail_send_2","text":"Send mail to finance@example.com with subject: Invoice and body: Please see attached"}
+{"detector":"workspace","expected":"gmail_check","id":"gmail_check_1","text":"Check Gmail for unread mail"}
+{"detector":"workspace","expected":"gmail_check","id":"gmail_check_2","text":"Look at my inbox"}
+{"detector":"workspace","expected":"calendar_next","id":"cal_next_1","text":"What events happen tomorrow?"}
+{"detector":"workspace","expected":"calendar_next","id":"cal_next_2","text":"What's on my calendar today?"}
+{"detector":"workspace","expected":"calendar_remove","id":"cal_remove_1","text":"Delete my calendar meeting on Friday"}
+{"detector":"workspace","expected":"calendar_remove","id":"cal_remove_2","text":"Cancel the dental appointment in calendar"}
+{"detector":"workspace","expected":"calendar_search","id":"cal_search_1","text":"Find the dentist appointment in calendar"}
+{"detector":"workspace","expected":"calendar_search","id":"cal_search_2","text":"Look for the workshop event"}
+{"detector":"workspace","expected":"calendar_create","id":"cal_create_1","text":"Add a calendar event for lunch tomorrow"}
+{"detector":"workspace","expected":"calendar_create","id":"cal_create_2","text":"Create a new calendar meeting for Friday at 15:00"}
+{"detector":"workspace","expected":"sheet_create","id":"sheet_create_1","text":"Create a new spreadsheet for expenses"}
+{"detector":"workspace","expected":"sheet_create","id":"sheet_create_2","text":"New spreadsheet for mileage tracking"}
+{"detector":"workspace","expected":"sheet_write","id":"sheet_write_1","text":"Append rows to the budget sheet"}
+{"detector":"workspace","expected":"sheet_write","id":"sheet_write_2","text":"Update the spreadsheet with these values"}
+{"detector":"workspace","expected":"sheet_read","id":"sheet_read_1","text":"Read the spreadsheet for me"}
+{"detector":"workspace","expected":"sheet_read","id":"sheet_read_2","text":"Show me the sheet"}
+{"detector":"workspace","expected":null,"id":"ws_negative_1","text":"Send Cornelia a message"}
+{"detector":"workspace","expected":null,"id":"ws_negative_2","text":"Show me a report"}

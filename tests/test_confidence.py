@@ -1,4 +1,4 @@
-from app.services.confidence import compute_document_confidence
+from app.services.confidence import build_refusal_confidence, compute_document_confidence
 
 
 def test_compute_document_confidence_high_for_multiple_strong_chunks():
@@ -53,3 +53,43 @@ def test_compute_document_confidence_penalizes_truncation():
 
     assert confidence is not None
     assert "coverage_truncated" in confidence["reason_codes"]
+
+
+def test_compute_document_confidence_returns_low_for_refusal_path():
+    confidence = compute_document_confidence(
+        chunks_used_for_prompt=[],
+        retrieval_metrics={"verification_status": "passed", "bounded_negative_mode": False},
+        retrieval_error=None,
+        coverage_mode="narrow_lookup",
+        coverage_truncated=False,
+        skip_llm=True,
+    )
+
+    assert confidence is not None
+    assert confidence["label"] == "low"
+    assert "no_verified_chunks" in confidence["reason_codes"]
+
+
+def test_compute_document_confidence_uses_new_high_threshold():
+    confidence = compute_document_confidence(
+        chunks_used_for_prompt=[{"score": 0.53, "lexical_score": 0.6}],
+        retrieval_metrics={"verification_status": "passed", "bounded_negative_mode": False},
+        retrieval_error=None,
+        coverage_mode="narrow_lookup",
+        coverage_truncated=False,
+        skip_llm=False,
+    )
+
+    assert confidence is not None
+    assert confidence["label"] == "high"
+
+
+def test_build_refusal_confidence_is_low():
+    confidence = build_refusal_confidence(
+        coverage_mode="narrow_lookup",
+        coverage_truncated=False,
+    )
+
+    assert confidence["label"] == "low"
+    assert confidence["score"] == 0.12
+    assert confidence["reason_codes"] == ["refusal_response"]

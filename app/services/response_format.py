@@ -2,10 +2,21 @@ from __future__ import annotations
 
 import re
 
-
 RESPONSE_FORMATS = {"binary", "list", "table", "summary", "comparison", "default"}
 
-_BINARY_PREFIXES = ("is ", "are ", "does ", "do ", "did ", "can ", "should ", "has ", "have ", "was ", "were ")
+_BINARY_PREFIXES = (
+    "is ",
+    "are ",
+    "does ",
+    "do ",
+    "did ",
+    "can ",
+    "should ",
+    "has ",
+    "have ",
+    "was ",
+    "were ",
+)
 _LIST_PHRASES = (
     "list",
     "show all",
@@ -26,9 +37,25 @@ _TABLE_PHRASES = (
     "list with dates",
     "show in a table",
 )
-_SUMMARY_PHRASES = ("summarize", "summary", "overview", "explain briefly", "high level", "key points")
+_SUMMARY_PHRASES = (
+    "summarize",
+    "summary",
+    "overview",
+    "explain briefly",
+    "high level",
+    "key points",
+)
 _COMPARISON_PHRASES = ("compare", "difference", "versus", " vs ", "similarities", "contrast")
-_TABLE_FIELDS = ("date", "amount", "provider", "member", "description", "control", "owner", "status")
+_TABLE_FIELDS = (
+    "date",
+    "amount",
+    "provider",
+    "member",
+    "description",
+    "control",
+    "owner",
+    "status",
+)
 
 
 def _normalize(query: str) -> str:
@@ -42,7 +69,9 @@ def detect_document_response_format(query: str) -> str:
     if normalized.startswith(_BINARY_PREFIXES):
         return "binary"
 
-    if any(phrase in normalized for phrase in _COMPARISON_PHRASES) or re.search(r"how does .+ differ from .+", normalized):
+    if any(phrase in normalized for phrase in _COMPARISON_PHRASES) or re.search(
+        r"how does .+ differ from .+", normalized
+    ):
         return "comparison"
 
     if any(phrase in normalized for phrase in _SUMMARY_PHRASES):
@@ -50,7 +79,9 @@ def detect_document_response_format(query: str) -> str:
 
     table_keyword_match = any(phrase in normalized for phrase in _TABLE_PHRASES)
     list_keyword_match = any(phrase in normalized for phrase in _LIST_PHRASES)
-    field_hits = sum(1 for field in _TABLE_FIELDS if re.search(rf"\b{re.escape(field)}s?\b", normalized))
+    field_hits = sum(
+        1 for field in _TABLE_FIELDS if re.search(rf"\b{re.escape(field)}s?\b", normalized)
+    )
 
     if table_keyword_match or (list_keyword_match and field_hits >= 2):
         return "table"
@@ -67,7 +98,9 @@ def explain_document_response_format_rule(query: str) -> str:
     if normalized.startswith(_BINARY_PREFIXES):
         return "matched_binary_prefix"
 
-    if any(phrase in normalized for phrase in _COMPARISON_PHRASES) or re.search(r"how does .+ differ from .+", normalized):
+    if any(phrase in normalized for phrase in _COMPARISON_PHRASES) or re.search(
+        r"how does .+ differ from .+", normalized
+    ):
         return "matched_comparison_keyword"
 
     if any(phrase in normalized for phrase in _SUMMARY_PHRASES):
@@ -75,7 +108,9 @@ def explain_document_response_format_rule(query: str) -> str:
 
     table_keyword_match = any(phrase in normalized for phrase in _TABLE_PHRASES)
     list_keyword_match = any(phrase in normalized for phrase in _LIST_PHRASES)
-    field_hits = sum(1 for field in _TABLE_FIELDS if re.search(rf"\b{re.escape(field)}s?\b", normalized))
+    field_hits = sum(
+        1 for field in _TABLE_FIELDS if re.search(rf"\b{re.escape(field)}s?\b", normalized)
+    )
 
     if table_keyword_match:
         return "matched_table_keyword"

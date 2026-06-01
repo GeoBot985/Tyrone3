@@ -1,5 +1,6 @@
 import math
 
+
 def estimate_tokens(text: str | None) -> int:
     """
     Simple character-based token estimation.

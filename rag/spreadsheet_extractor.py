@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import os
+import re
 from collections import Counter
 from datetime import date, datetime, time
 from decimal import Decimal
-import os
-import re
-
-from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
 
 from app.config import SPREADSHEET_HEADER_SCAN_LIMIT
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 
 def _is_numeric_like(value) -> bool:
@@ -55,7 +54,9 @@ def _row_values(sheet, row_index: int, min_col: int, max_col: int) -> list[str]:
     return values
 
 
-def _detect_header_row(sheet, min_row: int, max_row: int, min_col: int, max_col: int) -> tuple[int | None, list[str], list[str], bool]:
+def _detect_header_row(
+    sheet, min_row: int, max_row: int, min_col: int, max_col: int
+) -> tuple[int | None, list[str], list[str], bool]:
     warnings: list[str] = []
     scan_to = min(max_row, min_row + SPREADSHEET_HEADER_SCAN_LIMIT - 1)
     for row_index in range(min_row, scan_to + 1):
@@ -63,14 +64,18 @@ def _detect_header_row(sheet, min_row: int, max_row: int, min_col: int, max_col:
         non_empty = [value for value in values if value]
         if len(non_empty) < 2:
             continue
-        non_numeric = [value for value in non_empty if not value.replace(",", "").replace(".", "", 1).isdigit()]
+        non_numeric = [
+            value for value in non_empty if not value.replace(",", "").replace(".", "", 1).isdigit()
+        ]
         if len(non_numeric) >= max(2, len(non_empty) // 2):
             headers = []
             for offset, value in enumerate(values, start=min_col):
                 headers.append(value or f"Column_{get_column_letter(offset)}")
             return row_index, headers, warnings, True
 
-    generated_headers = [f"Column_{get_column_letter(col_idx)}" for col_idx in range(min_col, max_col + 1)]
+    generated_headers = [
+        f"Column_{get_column_letter(col_idx)}" for col_idx in range(min_col, max_col + 1)
+    ]
     warnings.append("No plausible header row found; generated column headers were used.")
     return None, generated_headers, warnings, False
 
@@ -82,7 +87,9 @@ def _classify_region(headers: list[str], values: list[str], row_text: str) -> st
 
     non_empty_values = [value for value in values if value]
     if len(non_empty_values) <= max(2, len(headers) // 2):
-        has_numeric = any(value.replace(",", "").replace(".", "", 1).isdigit() for value in non_empty_values)
+        has_numeric = any(
+            value.replace(",", "").replace(".", "", 1).isdigit() for value in non_empty_values
+        )
         has_alpha = any(re.search(r"[a-zA-Z]", value) for value in non_empty_values)
         if has_numeric and has_alpha:
             return "pivot_like"
@@ -163,28 +170,32 @@ def extract_xlsx_structured(path: str) -> dict:
         column_count_by_sheet[sheet.title] = max_col - min_col + 1
         sheet_names.append(sheet.title)
 
-        region_counts = Counter()
+        region_counts: Counter[str] = Counter()
         data_start_row = (header_row_index + 1) if header_row_index is not None else min_row
         data_row_count = 0
 
         if header_row_index is not None:
             header_values = _row_values(sheet, header_row_index, min_col, max_col)
             header_range = f"{get_column_letter(min_col)}{header_row_index}:{get_column_letter(max_col)}{header_row_index}"
-            header_pairs = [f"{header}: {value}" for header, value in zip(headers, header_values) if value]
-            row_records.append({
-                "sheet_name": sheet.title,
-                "row_index": header_row_index,
-                "start_column": get_column_letter(min_col),
-                "end_column": get_column_letter(max_col),
-                "cell_range": header_range,
-                "region_type": "header",
-                "headers": headers,
-                "values": header_values,
-                "text": (
-                    f"[Sheet: {sheet.title} | Range: {header_range} | Row: {header_row_index} | Region: header]\n"
-                    + "\n".join(header_pairs)
-                ).strip(),
-            })
+            header_pairs = [
+                f"{header}: {value}" for header, value in zip(headers, header_values) if value
+            ]
+            row_records.append(
+                {
+                    "sheet_name": sheet.title,
+                    "row_index": header_row_index,
+                    "start_column": get_column_letter(min_col),
+                    "end_column": get_column_letter(max_col),
+                    "cell_range": header_range,
+                    "region_type": "header",
+                    "headers": headers,
+                    "values": header_values,
+                    "text": (
+                        f"[Sheet: {sheet.title} | Range: {header_range} | Row: {header_row_index} | Region: header]\n"
+                        + "\n".join(header_pairs)
+                    ).strip(),
+                }
+            )
             region_counts["header"] += 1
 
         for row_index in range(data_start_row, max_row + 1):
@@ -198,7 +209,9 @@ def extract_xlsx_structured(path: str) -> dict:
 
             data_row_count += 1
             total_row_count += 1
-            cell_range = f"{get_column_letter(min_col)}{row_index}:{get_column_letter(max_col)}{row_index}"
+            cell_range = (
+                f"{get_column_letter(min_col)}{row_index}:{get_column_letter(max_col)}{row_index}"
+            )
             region_type = _classify_region(headers, values, " | ".join(pairs))
             region_counts[region_type] += 1
 
@@ -208,34 +221,40 @@ def extract_xlsx_structured(path: str) -> dict:
             text_blocks.extend(pairs)
             text_blocks.append("")
 
-            row_records.append({
-                "sheet_name": sheet.title,
-                "row_index": row_index,
-                "start_column": get_column_letter(min_col),
-                "end_column": get_column_letter(max_col),
-                "cell_range": cell_range,
-                "region_type": region_type,
-                "headers": headers,
-                "values": values,
-                "text": (
-                    f"[Sheet: {sheet.title} | Range: {cell_range} | Row: {row_index} | Region: {region_type}]\n"
-                    + "\n".join(pairs)
-                ).strip(),
-            })
+            row_records.append(
+                {
+                    "sheet_name": sheet.title,
+                    "row_index": row_index,
+                    "start_column": get_column_letter(min_col),
+                    "end_column": get_column_letter(max_col),
+                    "cell_range": cell_range,
+                    "region_type": region_type,
+                    "headers": headers,
+                    "values": values,
+                    "text": (
+                        f"[Sheet: {sheet.title} | Range: {cell_range} | Row: {row_index} | Region: {region_type}]\n"
+                        + "\n".join(pairs)
+                    ).strip(),
+                }
+            )
 
-        sheets_summary.append({
-            "sheet_name": sheet.title,
-            "header_row_index": header_row_index,
-            "headers": headers,
-            "data_row_count": data_row_count,
-            "region_counts": dict(region_counts),
-        })
+        sheets_summary.append(
+            {
+                "sheet_name": sheet.title,
+                "header_row_index": header_row_index,
+                "headers": headers,
+                "data_row_count": data_row_count,
+                "region_counts": dict(region_counts),
+            }
+        )
 
     if merged_present:
         warnings.append("Merged cells detected; only anchor-cell values were preserved.")
     warnings.extend(header_detection_warnings)
 
-    aggregate_region_counts = dict(sum((Counter(sheet.get("region_counts", {})) for sheet in sheets_summary), Counter()))
+    aggregate_region_counts = dict(
+        sum((Counter(sheet.get("region_counts", {})) for sheet in sheets_summary), Counter())
+    )
 
     if total_row_count == 0:
         return {
@@ -251,7 +270,9 @@ def extract_xlsx_structured(path: str) -> dict:
             "sheet_names": sheet_names,
             "skipped_objects": ["charts", "slicers", "shapes", "images"],
             "warnings": warnings,
-            "header_detection_used": any(sheet["header_row_index"] is not None for sheet in sheets_summary),
+            "header_detection_used": any(
+                sheet["header_row_index"] is not None for sheet in sheets_summary
+            ),
             "header_detection_warnings": header_detection_warnings,
             "row_records": row_records,
             "region_counts": aggregate_region_counts,
@@ -270,7 +291,9 @@ def extract_xlsx_structured(path: str) -> dict:
         "sheet_names": sheet_names,
         "skipped_objects": ["charts", "slicers", "shapes", "images"],
         "warnings": warnings,
-        "header_detection_used": any(sheet["header_row_index"] is not None for sheet in sheets_summary),
+        "header_detection_used": any(
+            sheet["header_row_index"] is not None for sheet in sheets_summary
+        ),
         "header_detection_warnings": header_detection_warnings,
         "row_records": row_records,
         "region_counts": aggregate_region_counts,

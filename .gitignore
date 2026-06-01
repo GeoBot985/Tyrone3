@@ -1,1 +1,9 @@
 secrets.json
+eval/.cache/
+eval/eval.db
+temp_uploads/
+rag_uploads/
+.coverage
+.pytest_cache/
+__pycache__/
+*.pyc

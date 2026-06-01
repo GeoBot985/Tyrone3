@@ -80,12 +80,14 @@ def extract_docx_structured(path: str) -> dict:
             region_counts["paragraph"] += 1
             ref = f"Paragraph {paragraph_count}"
             block_text = f"[DOCX | Block: {block_index} | Ref: {ref} | Region: paragraph]\n{text}"
-            blocks.append({
-                "region_type": "paragraph",
-                "block_index": block_index,
-                "reference": ref,
-                "text": block_text,
-            })
+            blocks.append(
+                {
+                    "region_type": "paragraph",
+                    "block_index": block_index,
+                    "reference": ref,
+                    "text": block_text,
+                }
+            )
             text_blocks.append(block_text)
             continue
 
@@ -99,18 +101,22 @@ def extract_docx_structured(path: str) -> dict:
             data_start = 0
             if rows and _looks_like_header(rows[0]):
                 headers = [value or f"Column_{index + 1}" for index, value in enumerate(rows[0])]
-                header_text_lines = [f"{header}: {value}" for header, value in zip(headers, rows[0]) if value]
+                header_text_lines = [
+                    f"{header}: {value}" for header, value in zip(headers, rows[0]) if value
+                ]
                 header_ref = f"Table {table_count} Header"
                 header_text = (
                     f"[DOCX | Block: {block_index} | Ref: {header_ref} | Region: table_header]\n"
                     + "\n".join(header_text_lines)
                 ).strip()
-                blocks.append({
-                    "region_type": "table_header",
-                    "block_index": block_index,
-                    "reference": header_ref,
-                    "text": header_text,
-                })
+                blocks.append(
+                    {
+                        "region_type": "table_header",
+                        "block_index": block_index,
+                        "reference": header_ref,
+                        "text": header_text,
+                    }
+                )
                 text_blocks.append(header_text)
                 region_counts["table_header"] += 1
                 data_start = 1
@@ -120,7 +126,11 @@ def extract_docx_structured(path: str) -> dict:
 
             for row_offset, row_values in enumerate(rows[data_start:], start=data_start + 1):
                 normalized_values = row_values + [""] * (len(headers) - len(row_values))
-                pairs = [f"{header}: {value}" for header, value in zip(headers, normalized_values) if value]
+                pairs = [
+                    f"{header}: {value}"
+                    for header, value in zip(headers, normalized_values)
+                    if value
+                ]
                 if not pairs:
                     continue
                 table_row_count += 1
@@ -130,14 +140,16 @@ def extract_docx_structured(path: str) -> dict:
                     f"[DOCX | Block: {block_index} | Ref: {row_ref} | Region: table_row]\n"
                     + "\n".join(pairs)
                 ).strip()
-                blocks.append({
-                    "region_type": "table_row",
-                    "block_index": block_index,
-                    "reference": row_ref,
-                    "headers": headers,
-                    "values": normalized_values,
-                    "text": row_text,
-                })
+                blocks.append(
+                    {
+                        "region_type": "table_row",
+                        "block_index": block_index,
+                        "reference": row_ref,
+                        "headers": headers,
+                        "values": normalized_values,
+                        "text": row_text,
+                    }
+                )
                 text_blocks.append(row_text)
 
     if not text_blocks:

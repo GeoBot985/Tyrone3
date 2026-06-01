@@ -9,10 +9,10 @@ demo5_root = os.path.abspath(os.path.join(current_dir, "../../"))
 if demo5_root not in sys.path:
     sys.path.append(demo5_root)
 
-from rag.db import get_connection, init_db, list_documents, get_document_by_hash
-from rag.ingest import ingest_document, get_file_hash, get_file_type, IngestionFailure
-from app.config import SUPPORTED_UPLOAD_TYPES_DISPLAY, RAG_UPLOADS_DIR, RAG_DB_PATH
+from rag.db import get_connection, get_document_by_hash, init_db, list_documents
+from rag.ingest import IngestionFailure, get_file_hash, get_file_type, ingest_document
 
+from app.config import RAG_DB_PATH, RAG_UPLOADS_DIR, SUPPORTED_UPLOAD_TYPES_DISPLAY
 
 PERSISTENT_UPLOAD_DIR = RAG_UPLOADS_DIR
 
@@ -22,6 +22,7 @@ def _build_persistent_copy_path(source_path: str) -> str:
     filename = os.path.basename(source_path)
     unique_name = f"{uuid.uuid4().hex}_{filename}"
     return os.path.join(PERSISTENT_UPLOAD_DIR, unique_name)
+
 
 def ingest_file(path: str, document_name: str | None = None) -> dict:
     """
@@ -46,7 +47,7 @@ def ingest_file(path: str, document_name: str | None = None) -> dict:
         "document_id": None,
         "chunks_indexed": 0,
         "error": None,
-        "reason": None
+        "reason": None,
     }
 
     if not os.path.exists(path):
@@ -120,24 +121,36 @@ def ingest_file(path: str, document_name: str | None = None) -> dict:
             else:
                 result["error"] = "No extractable text was found in this PDF."
         elif "legacy .xls spreadsheets are not yet supported" in error_str.lower():
-            result["error"] = "Legacy .xls spreadsheets are not yet supported. Please save as .xlsx and retry."
+            result["error"] = (
+                "Legacy .xls spreadsheets are not yet supported. Please save as .xlsx and retry."
+            )
         elif "failed to read xlsx workbook" in error_str.lower():
             result["error"] = "Failed to read XLSX workbook."
         elif "xlsx workbook contained no extractable rows" in error_str.lower():
             result["error"] = "XLSX workbook contained no extractable rows."
         elif "xlsx workbook could not identify any usable sheets" in error_str.lower():
             result["error"] = "XLSX workbook could not identify any usable sheets."
-        elif "fitz" in error_str.lower() or "pdf" in error_str.lower() and "read" in error_str.lower():
+        elif (
+            "fitz" in error_str.lower()
+            or "pdf" in error_str.lower()
+            and "read" in error_str.lower()
+        ):
             result["error"] = "Failed to read PDF."
         elif "unsupported file type" in error_str.lower():
-            result["error"] = f"Unsupported file type. Supported types: {SUPPORTED_UPLOAD_TYPES_DISPLAY}"
+            result["error"] = (
+                f"Unsupported file type. Supported types: {SUPPORTED_UPLOAD_TYPES_DISPLAY}"
+            )
         elif "extraction failed with markitdown" in error_str.lower():
             result["error"] = "Failed to read document."
         elif "docx" in error_str.lower() and "read" in error_str.lower():
             result["error"] = "Failed to read document."
         elif "embed" in error_str.lower() or "ollama" in error_str.lower():
             result["error"] = "Failed to generate embeddings."
-        elif "sql" in error_str.lower() or "database" in error_str.lower() or "duckdb" in error_str.lower():
+        elif (
+            "sql" in error_str.lower()
+            or "database" in error_str.lower()
+            or "duckdb" in error_str.lower()
+        ):
             result["error"] = "Failed to store document in knowledge base."
         else:
             result["error"] = f"Ingestion failed: {error_str}"
@@ -148,13 +161,15 @@ def ingest_file(path: str, document_name: str | None = None) -> dict:
     finally:
         try:
             conn.close()
-        except:
+        except Exception:
             pass
 
     return result
 
+
 def ingest_pdf_file(path: str, document_name: str | None = None) -> dict:
     return ingest_file(path, document_name)
+
 
 def get_indexed_docs() -> list[str]:
     """Returns a list of unique document IDs currently in the database."""
@@ -167,7 +182,7 @@ def get_indexed_docs() -> list[str]:
         conn = get_connection(db_path)
         # Check if table exists
         tables = conn.execute("SHOW TABLES").fetchall()
-        if any(t[0] == 'documents' for t in tables):
+        if any(t[0] == "documents" for t in tables):
             doc_records = list_documents(conn)
             docs = [d["document_id"] for d in doc_records]
     except Exception:
@@ -175,7 +190,7 @@ def get_indexed_docs() -> list[str]:
     finally:
         try:
             conn.close()
-        except:
+        except Exception:
             pass
 
     return docs

@@ -1,0 +1,14 @@
+You are grading a document-grounded assistant answer.
+
+Return JSON only with these keys:
+- grounded_in_evidence: true if every factual claim in the answer is supported by the provided evidence
+- answers_question: true if the answer actually addresses the user's question
+- overall_pass: true only if both grounded_in_evidence and answers_question are true
+- rationale: short sentence, no more than 25 words
+
+Rules:
+- Do not use outside knowledge.
+- If the answer says "Insufficient information" when the evidence does not support a direct answer, mark it as grounded and answering the question.
+- If the answer invents facts, extrapolates beyond the evidence, or contradicts the evidence, mark grounded_in_evidence false.
+- If the answer is evasive, unrelated, or fails to answer the question, mark answers_question false.
+

@@ -17,6 +17,18 @@ def _confidence_label(score: float) -> str:
     return "low"
 
 
+def build_refusal_confidence(
+    *, coverage_mode: str, coverage_truncated: bool, reason: str = "refusal_response"
+) -> dict[str, Any]:
+    return {
+        "score": 0.12,
+        "label": "low",
+        "coverage_mode": coverage_mode,
+        "coverage_truncated": coverage_truncated,
+        "reason_codes": [reason],
+    }
+
+
 def compute_document_confidence(
     *,
     chunks_used_for_prompt: list[dict],
@@ -26,9 +38,6 @@ def compute_document_confidence(
     coverage_truncated: bool,
     skip_llm: bool,
 ) -> dict[str, Any] | None:
-    if not chunks_used_for_prompt and not retrieval_error:
-        return None
-
     metrics = retrieval_metrics or {}
     reason_codes: list[str] = []
 
@@ -36,13 +45,28 @@ def compute_document_confidence(
         score = 0.1
         reason_codes.append("retrieval_error")
     elif not chunks_used_for_prompt:
-        score = 0.15 if skip_llm else 0.2
+        score = 0.12 if skip_llm else 0.18
         reason_codes.append("no_verified_chunks")
     else:
         used_count = len(chunks_used_for_prompt)
-        avg_score = sum(max(0.0, min(1.0, float(chunk.get("score", 0.0)))) for chunk in chunks_used_for_prompt) / used_count
-        lexical_strength = sum(1 for chunk in chunks_used_for_prompt if float(chunk.get("lexical_score", 0.0)) >= 0.5) / used_count
-        evidence_count_factor = min(1.0, used_count / (6.0 if coverage_mode == "coverage_required" else 2.0))
+        avg_score = (
+            sum(
+                max(0.0, min(1.0, float(chunk.get("score", 0.0))))
+                for chunk in chunks_used_for_prompt
+            )
+            / used_count
+        )
+        lexical_strength = (
+            sum(
+                1
+                for chunk in chunks_used_for_prompt
+                if float(chunk.get("lexical_score", 0.0)) >= 0.5
+            )
+            / used_count
+        )
+        evidence_count_factor = min(
+            1.0, used_count / (6.0 if coverage_mode == "coverage_required" else 2.0)
+        )
 
         score = (0.55 * avg_score) + (0.2 * evidence_count_factor) + (0.15 * lexical_strength) + 0.1
 

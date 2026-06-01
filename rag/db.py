@@ -1,6 +1,6 @@
-import duckdb
 import struct
 
+import duckdb
 from app.config import RAG_DB_PATH
 
 
@@ -17,8 +17,10 @@ def _row_to_dict(cursor) -> dict | None:
     cols = [desc[0] for desc in cursor.description]
     return dict(zip(cols, row))
 
+
 def get_connection(db_path=RAG_DB_PATH):
     return duckdb.connect(db_path)
+
 
 def init_db(conn):
     # New normalized schema
@@ -78,7 +80,9 @@ def init_db(conn):
     if "raw_text_char_count" not in col_names:
         conn.execute("ALTER TABLE documents ADD COLUMN raw_text_char_count INTEGER DEFAULT 0")
     if "normalized_text_char_count" not in col_names:
-        conn.execute("ALTER TABLE documents ADD COLUMN normalized_text_char_count INTEGER DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE documents ADD COLUMN normalized_text_char_count INTEGER DEFAULT 0"
+        )
     if "extraction_details_json" not in col_names:
         conn.execute("ALTER TABLE documents ADD COLUMN extraction_details_json TEXT")
     if "ocr_used" not in col_names:
@@ -99,8 +103,10 @@ def init_db(conn):
     if "cell_range" not in chunk_col_names:
         conn.execute("ALTER TABLE chunks ADD COLUMN cell_range TEXT")
 
+
 def insert_document(conn, doc: dict) -> None:
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO documents (
             document_id, document_name, source_path, file_hash,
             file_size_bytes, ingested_at, chunk_count,
@@ -108,28 +114,35 @@ def insert_document(conn, doc: dict) -> None:
             failure_stage, failure_reason, raw_text_char_count, normalized_text_char_count,
             extraction_details_json, ocr_used, ocr_char_count, ocr_page_count
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, [
-        doc["document_id"], doc["document_name"], doc["source_path"],
-        doc["file_hash"], doc["file_size_bytes"], doc["ingested_at"],
-        doc["chunk_count"],
-        doc.get("ingestion_method", "text"),
-        doc.get("file_type", "pdf"),
-        doc.get("primary_extractor"),
-        doc.get("fallback_extractor"),
-        doc.get("failure_stage"),
-        doc.get("failure_reason"),
-        doc.get("raw_text_char_count", 0),
-        doc.get("normalized_text_char_count", 0),
-        doc.get("extraction_details_json"),
-        doc.get("ocr_used", False),
-        doc.get("ocr_char_count", 0),
-        doc.get("ocr_page_count", 0)
-    ])
+    """,
+        [
+            doc["document_id"],
+            doc["document_name"],
+            doc["source_path"],
+            doc["file_hash"],
+            doc["file_size_bytes"],
+            doc["ingested_at"],
+            doc["chunk_count"],
+            doc.get("ingestion_method", "text"),
+            doc.get("file_type", "pdf"),
+            doc.get("primary_extractor"),
+            doc.get("fallback_extractor"),
+            doc.get("failure_stage"),
+            doc.get("failure_reason"),
+            doc.get("raw_text_char_count", 0),
+            doc.get("normalized_text_char_count", 0),
+            doc.get("extraction_details_json"),
+            doc.get("ocr_used", False),
+            doc.get("ocr_char_count", 0),
+            doc.get("ocr_page_count", 0),
+        ],
+    )
+
 
 def insert_chunk(conn, chunk: dict) -> None:
     # Convert list of floats to binary format for BLOB storage
     embedding = chunk["embedding"]
-    blob_data = struct.pack(f'{len(embedding)}f', *embedding)
+    blob_data = struct.pack(f"{len(embedding)}f", *embedding)
     conn.execute(
         """
         INSERT INTO chunks (
@@ -137,30 +150,36 @@ def insert_chunk(conn, chunk: dict) -> None:
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
-            chunk["chunk_id"], chunk["document_id"], chunk["chunk_index"], chunk["text"],
-            chunk.get("region_type"), chunk.get("sheet_name"), chunk.get("row_index"), chunk.get("cell_range"),
-            blob_data
-        ]
+            chunk["chunk_id"],
+            chunk["document_id"],
+            chunk["chunk_index"],
+            chunk["text"],
+            chunk.get("region_type"),
+            chunk.get("sheet_name"),
+            chunk.get("row_index"),
+            chunk.get("cell_range"),
+            blob_data,
+        ],
     )
+
 
 def list_documents(conn) -> list[dict]:
     cursor = conn.execute("SELECT * FROM documents ORDER BY ingested_at DESC")
     return _rows_to_dicts(cursor)
 
+
 def delete_document(conn, document_id: str) -> bool:
     # Manual cascade because DuckDB FK ON DELETE CASCADE might not be fully supported in all versions/setups
     # or might require specific pragmas. Manual is safer here.
     conn.execute("DELETE FROM chunks WHERE document_id = ?", [document_id])
-    res = conn.execute("DELETE FROM documents WHERE document_id = ?", [document_id])
-    # Use fetchone() to get the count of deleted rows as rowcount can be -1
-    count = conn.execute("SELECT count(*) FROM (SELECT 1 FROM documents WHERE document_id = ?)", [document_id]).fetchone()[0]
-    # Actually, rowcount should work if we just executed DELETE.
-    # But let's check if it's actually deleted.
-    return True # Fail-safe, the actual deletion is what matters
+    conn.execute("DELETE FROM documents WHERE document_id = ?", [document_id])
+    return True  # Fail-safe, the actual deletion is what matters
+
 
 def clear_corpus(conn) -> None:
     conn.execute("DELETE FROM chunks")
     conn.execute("DELETE FROM documents")
+
 
 def get_corpus_stats(conn) -> dict:
     doc_count = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
@@ -170,16 +189,19 @@ def get_corpus_stats(conn) -> dict:
     return {
         "total_documents": doc_count,
         "total_chunks": chunk_count,
-        "last_ingestion_at": last_ingestion
+        "last_ingestion_at": last_ingestion,
     }
+
 
 def get_document_by_id(conn, document_id: str) -> dict | None:
     cursor = conn.execute("SELECT * FROM documents WHERE document_id = ?", [document_id])
     return _row_to_dict(cursor)
 
+
 def get_document_by_hash(conn, file_hash: str) -> dict | None:
     cursor = conn.execute("SELECT * FROM documents WHERE file_hash = ?", [file_hash])
     return _row_to_dict(cursor)
+
 
 def get_all_embeddings(conn, document_ids: list[str] | None = None):
     query = """
@@ -198,22 +220,35 @@ def get_all_embeddings(conn, document_ids: list[str] | None = None):
     results = conn.execute(query, params).fetchall()
 
     parsed_results = []
-    for text, blob, chunk_index, region_type, sheet_name, row_index, cell_range, doc_id, doc_name, ingested_at in results:
+    for (
+        text,
+        blob,
+        chunk_index,
+        region_type,
+        sheet_name,
+        row_index,
+        cell_range,
+        doc_id,
+        doc_name,
+        ingested_at,
+    ) in results:
         # Convert blob back to list of floats
-        num_floats = len(blob) // 4 # 4 bytes per float32
-        embedding = list(struct.unpack(f'{num_floats}f', blob))
-        parsed_results.append({
-            "text": text,
-            "embedding": embedding,
-            "chunk_index": chunk_index,
-            "region_type": region_type,
-            "sheet_name": sheet_name,
-            "row_index": row_index,
-            "cell_range": cell_range,
-            "document_id": doc_id,
-            "document_name": doc_name,
-            "ingested_at": ingested_at
-        })
+        num_floats = len(blob) // 4  # 4 bytes per float32
+        embedding = list(struct.unpack(f"{num_floats}f", blob))
+        parsed_results.append(
+            {
+                "text": text,
+                "embedding": embedding,
+                "chunk_index": chunk_index,
+                "region_type": region_type,
+                "sheet_name": sheet_name,
+                "row_index": row_index,
+                "cell_range": cell_range,
+                "document_id": doc_id,
+                "document_name": doc_name,
+                "ingested_at": ingested_at,
+            }
+        )
 
     return parsed_results
 
@@ -264,13 +299,26 @@ def find_exact_chunk(
     ]
     return dict(zip(cols, result))
 
+
 def get_all_chunks_for_document(conn, document_id: str) -> list[dict]:
-    results = conn.execute("""
+    results = conn.execute(
+        """
         SELECT chunk_id, document_id, chunk_index, text, region_type, sheet_name, row_index, cell_range
         FROM chunks
         WHERE document_id = ?
         ORDER BY chunk_index ASC
-    """, [document_id]).fetchall()
+    """,
+        [document_id],
+    ).fetchall()
 
-    cols = ["chunk_id", "document_id", "chunk_index", "text", "region_type", "sheet_name", "row_index", "cell_range"]
+    cols = [
+        "chunk_id",
+        "document_id",
+        "chunk_index",
+        "text",
+        "region_type",
+        "sheet_name",
+        "row_index",
+        "cell_range",
+    ]
     return [dict(zip(cols, r)) for r in results]

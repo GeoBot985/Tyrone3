@@ -1,25 +1,26 @@
-import fitz
 import hashlib
 import json
 import os
 import uuid
-from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+
+import fitz
+from app.config import (
+    ENABLE_MARKITDOWN,
+    INGESTION_EMBED_MAX_WORKERS,
+    INGESTION_MAX_WORKERS,
+    SUPPORTED_UPLOAD_EXTENSIONS,
+)
 
 from .db import insert_chunk, insert_document
 from .docx_extractor import extract_docx_structured
 from .embedder import embed_text
-from .ocr_service import extract_text_with_ocr, is_scanned_pdf
-from .markitdown_extractor import extract_with_markitdown
 from .layout_normalizer import normalize_layout_aware_text
+from .markitdown_extractor import extract_with_markitdown
+from .ocr_service import extract_text_with_ocr, is_scanned_pdf
 from .spreadsheet_extractor import extract_xlsx_structured
 from .timing import IngestionTimings, StageTimer
-from app.config import (
-    ENABLE_MARKITDOWN,
-    INGESTION_MAX_WORKERS,
-    INGESTION_EMBED_MAX_WORKERS,
-    SUPPORTED_UPLOAD_EXTENSIONS,
-)
 
 
 def get_file_hash(path: str) -> str:
@@ -111,7 +112,9 @@ def _build_provenance(file_type: str) -> dict:
     }
 
 
-def _raise_ingestion_failure(provenance: dict, stage: str, reason: str, user_message: str | None = None):
+def _raise_ingestion_failure(
+    provenance: dict, stage: str, reason: str, user_message: str | None = None
+):
     provenance["failure_stage"] = stage
     provenance["failure_reason"] = reason
     provenance["stage_reached"] = stage
@@ -131,7 +134,9 @@ def is_supported_upload_extension(ext: str) -> bool:
     return ext in SUPPORTED_UPLOAD_EXTENSIONS
 
 
-def _extract_text_for_ingestion(path: str, ext: str, timings: IngestionTimings, provenance: dict) -> dict:
+def _extract_text_for_ingestion(
+    path: str, ext: str, timings: IngestionTimings, provenance: dict
+) -> dict:
     if ext == ".xlsx":
         provenance["primary_extractor"] = "openpyxl_structured"
         provenance["fallback_extractor"] = None
@@ -312,7 +317,9 @@ def _extract_text_for_ingestion(path: str, ext: str, timings: IngestionTimings, 
                 (
                     "PDF extraction failed in MarkItDown and OCR fallback: "
                     f"{markitdown_result.get('error') or 'insufficient text extracted'}; {ocr_result['error']}"
-                ) if markitdown_failed or insufficient_text else ocr_result["error"],
+                )
+                if markitdown_failed or insufficient_text
+                else ocr_result["error"],
             )
 
         normalized_ocr_text = _normalize_extracted_text(ocr_result["text"])
@@ -385,6 +392,7 @@ def _extract_text_for_ingestion(path: str, ext: str, timings: IngestionTimings, 
         "file_validation",
         f"Unsupported file type: {ext}",
     )
+    raise AssertionError("unreachable")
 
 
 def ingest_document(path: str, conn, document_name: str | None = None) -> dict:
@@ -442,8 +450,12 @@ def ingest_document(path: str, conn, document_name: str | None = None) -> dict:
         provenance["ocr_char_count"] = ocr_char_count
         provenance["ocr_page_count"] = ocr_page_count
         provenance["failed_pages"] = failed_pages
-        provenance["raw_text_char_count"] = extraction_result.get("raw_text_char_count", provenance["raw_text_char_count"])
-        provenance["normalized_text_char_count"] = extraction_result.get("normalized_text_char_count", provenance["normalized_text_char_count"])
+        provenance["raw_text_char_count"] = extraction_result.get(
+            "raw_text_char_count", provenance["raw_text_char_count"]
+        )
+        provenance["normalized_text_char_count"] = extraction_result.get(
+            "normalized_text_char_count", provenance["normalized_text_char_count"]
+        )
     except IngestionFailure:
         raise
 
@@ -465,7 +477,9 @@ def ingest_document(path: str, conn, document_name: str | None = None) -> dict:
     provenance["stage_reached"] = "chunking"
     with StageTimer(timings, "chunking"):
         if structured_chunks:
-            text_chunks = [chunk["text"] for chunk in structured_chunks if chunk.get("text", "").strip()]
+            text_chunks = [
+                chunk["text"] for chunk in structured_chunks if chunk.get("text", "").strip()
+            ]
             chunk_metadata = [
                 {
                     "region_type": chunk.get("region_type"),
@@ -523,21 +537,23 @@ def ingest_document(path: str, conn, document_name: str | None = None) -> dict:
         "failure_reason": provenance["failure_reason"],
         "raw_text_char_count": provenance["raw_text_char_count"],
         "normalized_text_char_count": provenance["normalized_text_char_count"],
-        "extraction_details_json": json.dumps({
-            "layout_normalization_applied": provenance["layout_normalization_applied"],
-            "layout_mode": provenance["layout_mode"],
-            "layout_warnings": provenance["layout_warnings"],
-            "sheet_count": provenance["sheet_count"],
-            "sheet_names": provenance["sheet_names"],
-            "row_count": provenance["row_count"],
-            "header_detection_used": provenance["header_detection_used"],
-            "header_detection_warnings": provenance["header_detection_warnings"],
-            "skipped_object_types": provenance["skipped_object_types"],
-            "has_table_rows": provenance["has_table_rows"],
-            "has_summary_blocks": provenance["has_summary_blocks"],
-            "region_counts": provenance["region_counts"],
-            "extraction_details": provenance["extraction_details"],
-        }),
+        "extraction_details_json": json.dumps(
+            {
+                "layout_normalization_applied": provenance["layout_normalization_applied"],
+                "layout_mode": provenance["layout_mode"],
+                "layout_warnings": provenance["layout_warnings"],
+                "sheet_count": provenance["sheet_count"],
+                "sheet_names": provenance["sheet_names"],
+                "row_count": provenance["row_count"],
+                "header_detection_used": provenance["header_detection_used"],
+                "header_detection_warnings": provenance["header_detection_warnings"],
+                "skipped_object_types": provenance["skipped_object_types"],
+                "has_table_rows": provenance["has_table_rows"],
+                "has_summary_blocks": provenance["has_summary_blocks"],
+                "region_counts": provenance["region_counts"],
+                "extraction_details": provenance["extraction_details"],
+            }
+        ),
         "ocr_used": ocr_used,
         "ocr_char_count": ocr_char_count,
         "ocr_page_count": ocr_page_count,

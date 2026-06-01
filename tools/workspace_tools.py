@@ -17,6 +17,8 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from typing import Any
 
+from ollama_client import chat as ollama_chat
+
 
 TOOLS_DIR = Path(__file__).resolve().parent
 PYTHON = sys.executable
@@ -177,15 +179,35 @@ def detect_workspace_intent(message: str) -> str | None:
         return None
 
     if any(term in text for term in ("whatsapp", "wa message", "whatsapp to")):
-        if any(term in text for term in ("summarize", "summary", "read", "show", "list", "recent", "last", "history", "recommended", "recommend", "decision", "decided", "what did", "who did", "plumber", "plumbers")):
-            return "whatsapp_read"
         if re.search(r"\b(send|send a|send the|message|text|image|photo|file)\b", text):
             return "whatsapp_send"
         if any(term in text for term in ("search", "find", "open chat", "open the chat")):
             return "whatsapp_search"
+        if any(
+            term in text
+            for term in (
+                "summarize",
+                "summary",
+                "read",
+                "show",
+                "list",
+                "recent",
+                "last",
+                "history",
+                "recommended",
+                "recommend",
+                "decision",
+                "decided",
+                "what did",
+                "who did",
+                "plumber",
+                "plumbers",
+            )
+        ):
+            return "whatsapp_read"
         return "whatsapp_read"
 
-    if any(term in text for term in ("gmail", "email", "mail")):
+    if any(term in text for term in ("gmail", "email", "mail", "inbox", "mailbox")):
         if any(term in text for term in ("send", "compose", "write", "send mail", "send email")):
             return "gmail_send"
         return "gmail_check"
@@ -206,7 +228,7 @@ def detect_workspace_intent(message: str) -> str | None:
             "scheduled for tomorrow",
             "scheduled for today",
         )
-    ) or (("tomorrow" in text or "today" in text) and "event" in text):
+    ):
         return "calendar_next"
 
     if any(term in text for term in ("calendar", "family calendar", "google family calendar", "meeting", "event", "events", "appointment", "agenda", "schedule")):
@@ -460,3 +482,165 @@ async def whatsapp_search(chat: str) -> WorkspaceResult:
         if last_result.ok:
             return last_result
     return last_result or WorkspaceResult(ok=False, action="whatsapp_search", error="WhatsApp search failed.")
+
+
+async def dispatch_workspace_intent(
+    workspace_intent: str,
+    message: str,
+    details: dict[str, Any],
+    model: str,
+) -> str:
+    if workspace_intent == "gmail_send":
+        to_value = details.get("email")
+        subject = details.get("subject") or "Tyrone message"
+        body = details.get("body") or message
+        if not to_value:
+            raise RuntimeError("Gmail send requests need a recipient email address.")
+        result = await gmail_send(to_value, subject, body)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Gmail send failed.")
+        return result.output.strip() or "Gmail send completed."
+
+    if workspace_intent == "gmail_check":
+        result = await gmail_check(5)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Gmail check failed.")
+        return result.output.strip() or "No unread inbox mail."
+
+    if workspace_intent == "calendar_create":
+        title = details.get("calendar_title") or details.get("title") or "Tyrone calendar event"
+        date = details.get("date")
+        start = details.get("start")
+        end = details.get("end")
+        if not date or not start or not end:
+            raise RuntimeError("Calendar create requests need a date and start/end times.")
+        norm_date = normalize_date(date)
+        start_dt = f"{norm_date}T{start}:00+02:00"
+        end_dt = f"{norm_date}T{end}:00+02:00"
+        result = await calendar_create(title, start_dt, end_dt)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Calendar create failed.")
+        return result.output.strip() or "Calendar entry created."
+
+    if workspace_intent == "calendar_search":
+        query = details.get("title") or details.get("message") or message
+        result = await calendar_search(query, days=7)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Calendar search failed.")
+        return summarize_calendar_output(result.output, message)
+
+    if workspace_intent == "calendar_remove":
+        event_id = details.get("event_id") or details.get("id")
+        if not event_id:
+            raise RuntimeError("Calendar remove requests need an event ID.")
+        result = await calendar_remove(event_id)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Calendar remove failed.")
+        return result.output.strip() or "Calendar entry removed."
+
+    if workspace_intent == "calendar_next":
+        request_l = message.lower()
+        if "tomorrow" in request_l or "today" in request_l:
+            tz = ZoneInfo("Africa/Johannesburg")
+            now = datetime.now(tz)
+            day_offset = 1 if "tomorrow" in request_l else 0
+            target_day = (now + timedelta(days=day_offset)).replace(hour=0, minute=0, second=0, microsecond=0)
+            day_start = target_day.isoformat()
+            day_end = (target_day + timedelta(days=1)).isoformat()
+            result = await calendar_search("", time_min=day_start, time_max=day_end, max_results=20)
+            if not result.ok:
+                raise RuntimeError(result.error.strip() or "Calendar search failed.")
+            summary = summarize_calendar_output(result.output, message)
+            return summary or "No calendar entries found for that day."
+
+        result = await calendar_next(5)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Calendar next failed.")
+        return summarize_calendar_output(result.output, message)
+
+    if workspace_intent == "sheet_create":
+        title = details.get("title") or "Tyrone Sheet"
+        result = await sheet_create(title)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Sheet create failed.")
+        return result.output.strip() or "Spreadsheet created."
+
+    if workspace_intent == "sheet_read":
+        spreadsheet_id = details.get("spreadsheet_id")
+        range_name = details.get("range")
+        if not spreadsheet_id or not range_name:
+            raise RuntimeError("Sheet read requests need a spreadsheet id and range.")
+        result = await sheet_read(spreadsheet_id, range_name)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Sheet read failed.")
+        return result.output.strip() or "No sheet values found."
+
+    if workspace_intent == "sheet_write":
+        spreadsheet_id = details.get("spreadsheet_id")
+        range_name = details.get("range")
+        values_json = details.get("values")
+        if not spreadsheet_id or not range_name or not values_json:
+            raise RuntimeError("Sheet write requests need a spreadsheet id, range, and values JSON.")
+        result = await sheet_write(spreadsheet_id, range_name, values_json)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "Sheet write failed.")
+        return result.output.strip() or "Sheet write completed."
+
+    if workspace_intent == "whatsapp_send":
+        chat = details.get("chat")
+        if not chat:
+            raise RuntimeError("WhatsApp send requests need a chat name.")
+        message_text = details.get("whatsapp_message") or details.get("body") or message
+        result = await whatsapp_send(chat, message=message_text)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "WhatsApp send failed.")
+        return result.output.strip() or "WhatsApp message sent."
+
+    if workspace_intent == "whatsapp_read":
+        chat = details.get("chat")
+        if not chat:
+            raise RuntimeError("WhatsApp read requests need a chat name.")
+        result = await whatsapp_read(chat, limit=10)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "WhatsApp read failed.")
+        user_text = message.lower()
+        if any(term in user_text for term in ("plumber", "plumbers", "recommended", "recommend", "meeting date", "decided", "decision", "summary", "summarize", "summarise")):
+            style_hint = (
+                "Return a compact answer with at most 5 bullets. "
+                "Only mention people, decisions, or facts that are explicitly supported by the messages. "
+                "If the chat does not clearly support an answer, say that you do not know. "
+                "For recommendation requests, list only the names that are directly mentioned as recommendations and a very short reason. "
+                "For decision requests, answer yes/no first, then one short sentence. "
+                "Avoid long prose, avoid repeating the whole transcript, and exclude timestamps and phone numbers unless they are directly relevant."
+            )
+        else:
+            style_hint = (
+                "Return a concise answer in at most 4 bullets. "
+                "Focus on the main point, any decision, and any action items. "
+                "Avoid timestamps, phone numbers, and repeated chatter."
+            )
+        answer_prompt = (
+            "Answer the user's WhatsApp question using only the retrieved chat messages below. "
+            f"{style_hint}\n\n"
+            f"User question: {message}\n\n"
+            f"Chat messages:\n{result.output}"
+        )
+        answer_response, _, answer_error = await ollama_chat(
+            model,
+            answer_prompt,
+            temperature=0.1,
+        )
+        if answer_error:
+            raise RuntimeError(answer_error)
+        return answer_response.get("message", {}).get("content", "").strip() or summarize_whatsapp_output(result.output)
+
+    if workspace_intent == "whatsapp_search":
+        chat = details.get("chat")
+        if not chat:
+            raise RuntimeError("WhatsApp search requests need a chat name.")
+        result = await whatsapp_search(chat)
+        if not result.ok:
+            raise RuntimeError(result.error.strip() or "WhatsApp search failed.")
+        return result.output.strip() or f"Chat opened: {chat}"
+
+    raise RuntimeError(f"Unsupported workspace intent: {workspace_intent}")

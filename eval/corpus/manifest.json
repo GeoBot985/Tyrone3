@@ -1,0 +1,26 @@
+[
+  {
+    "doc_id": "5bf514e7-3084-5870-a074-26bc063ce59b",
+    "file_name": "alpha_policy.txt"
+  },
+  {
+    "doc_id": "fefee991-5e00-5a6a-a8dd-b6fd751de85c",
+    "file_name": "beta_meeting.docx"
+  },
+  {
+    "doc_id": "3392d7fc-3546-510b-b7f1-8b327bf45965",
+    "file_name": "gamma_metrics.csv"
+  },
+  {
+    "doc_id": "1c38ecb5-e651-55da-8f9f-0abf6ed21c0c",
+    "file_name": "delta_schedule.xlsx"
+  },
+  {
+    "doc_id": "84904e4f-e7f7-5239-a00a-232d1da2e805",
+    "file_name": "epsilon_scanned.pdf"
+  },
+  {
+    "doc_id": "d2c17693-8507-5714-881a-96626e82c9bd",
+    "file_name": "zeta_brief.pdf"
+  }
+]

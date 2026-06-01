@@ -1,7 +1,9 @@
-from typing import List, Dict
 from app.services.session_grounding import get_session_grounding
 
-def build_format_specific_instructions(response_format: str, retrieval_mode: str = "default") -> str:
+
+def build_format_specific_instructions(
+    response_format: str, retrieval_mode: str = "default"
+) -> str:
     if response_format == "binary":
         return (
             "- Start the answer with 'Yes' or 'No'.\n"
@@ -76,7 +78,7 @@ def build_format_specific_instructions(response_format: str, retrieval_mode: str
 
 def build_grounded_prompt(
     query: str,
-    retrieved_chunks: List[Dict],
+    retrieved_chunks: list[dict],
     response_format: str = "default",
     retrieval_mode: str = "default",
     coverage_mode: str = "narrow_lookup",
@@ -144,6 +146,7 @@ def build_grounded_prompt(
         f"{coverage_truncation_block}"
         f"{format_instruction_block}"
     )
+
 
 def build_chat_with_document_prompt(query: str, document_name: str, full_text: str) -> str:
     """
