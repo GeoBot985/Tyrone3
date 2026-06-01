@@ -1,6 +1,13 @@
 secrets.json
 eval/.cache/
 eval/eval.db
+rag_v2.db
+rag.db
+test_ingest.db
+test.pdf
+demo5.out.log
+demo5.err.log
+consolidated.txt
 temp_uploads/
 rag_uploads/
 .coverage
