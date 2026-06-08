@@ -19,9 +19,14 @@ def personal_mode_enabled() -> bool:
 
 STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
 TEMPLATES_DIR = os.path.join(PROJECT_ROOT, "templates")
-TEMP_UPLOADS_DIR = os.path.join(PROJECT_ROOT, "temp_uploads")
-RAG_UPLOADS_DIR = os.path.join(PROJECT_ROOT, "rag_uploads")
-RAG_DB_PATH = os.path.join(PROJECT_ROOT, "rag_v2.db")
+
+# Persistent data lives under DATA_DIR (defaults to the repo root for local runs).
+# In Docker, point TYRONE_DATA_DIR at a mounted volume so the corpus and uploads
+# survive container restarts.
+DATA_DIR = os.environ.get("TYRONE_DATA_DIR") or PROJECT_ROOT
+TEMP_UPLOADS_DIR = os.path.join(PROJECT_ROOT, "temp_uploads")  # ephemeral scratch
+RAG_UPLOADS_DIR = os.environ.get("TYRONE_RAG_UPLOADS_DIR") or os.path.join(DATA_DIR, "rag_uploads")
+RAG_DB_PATH = os.environ.get("TYRONE_RAG_DB_PATH") or os.path.join(DATA_DIR, "rag_v2.db")
 
 # RAG Configuration Constants for Spec 012
 

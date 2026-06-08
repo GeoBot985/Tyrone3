@@ -108,6 +108,32 @@ $env:OLLAMA_FAKE="1"
 python main.py
 ```
 
+## Run With Docker
+
+The app ships as a container that talks to an Ollama instance running on the host.
+Ollama is **not** bundled — install and run it yourself (`ollama serve` and
+`ollama pull granite4:3b`), then:
+
+```bash
+docker compose up --build
+```
+
+Open `http://127.0.0.1:8000`. Notes:
+
+- The port is published on `127.0.0.1` only, keeping the pilot local/single-user.
+- `OLLAMA_BASE_URL` defaults to `http://host.docker.internal:11434` (the host's Ollama).
+  Override it in `docker-compose.yml` to point elsewhere.
+- The corpus DB and uploaded originals persist in the `tyrone-data` named volume.
+- Personal mode stays off; set `TYRONE_ENABLE_PERSONAL=1` in the compose `environment`
+  block to enable it.
+
+The container starts with an empty corpus — upload documents through the UI, or seed
+the demo corpus into the volume:
+
+```bash
+docker compose run --rm tyrone python demo/seed.py
+```
+
 ## One-Command Demo
 
 Seed the app from the synthetic eval corpus:

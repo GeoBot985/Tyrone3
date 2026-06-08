@@ -3,19 +3,28 @@ from __future__ import annotations
 from typing import Any
 
 from models import ChatRequest
-from tools.gobook_tools import (
-    detect_rpa_intent,
-    extract_rpa_details,
-    rpa_book,
-    rpa_cancel,
-    rpa_list,
-    rpa_open_courts,
-)
-from tools.workspace_tools import (
-    detect_workspace_intent,
-    dispatch_workspace_intent,
-    extract_workspace_details,
-)
+
+# Personal-mode tools pull heavy optional deps (playwright, Google APIs). Personal
+# mode is opt-in, so tolerate them being absent: chat/document deployments boot
+# without these installed, and the personal branch guards before using them.
+try:
+    from tools.gobook_tools import (
+        detect_rpa_intent,
+        extract_rpa_details,
+        rpa_book,
+        rpa_cancel,
+        rpa_list,
+        rpa_open_courts,
+    )
+    from tools.workspace_tools import (
+        detect_workspace_intent,
+        dispatch_workspace_intent,
+        extract_workspace_details,
+    )
+
+    PERSONAL_TOOLS_AVAILABLE = True
+except ModuleNotFoundError:  # pragma: no cover - exercised only without personal deps
+    PERSONAL_TOOLS_AVAILABLE = False
 
 from app.services.confidence import compute_document_confidence
 from app.services.document_coverage import (
@@ -145,6 +154,11 @@ async def prepare_mode_state(
                 )
 
     elif effective_mode == "personal":
+        if not PERSONAL_TOOLS_AVAILABLE:
+            raise RuntimeError(
+                "Personal mode is enabled but its dependencies (playwright, Google APIs) "
+                "are not installed."
+            )
         rpa_intent = detect_rpa_intent(request.message)
         if rpa_intent:
             try:

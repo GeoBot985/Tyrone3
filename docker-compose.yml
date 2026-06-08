@@ -1,0 +1,28 @@
+# App-only stack: runs Tyrone and reaches Ollama on the host machine.
+# The customer installs and runs Ollama themselves (e.g. `ollama serve` +
+# `ollama pull granite4:3b`); this compose file does not start Ollama.
+services:
+  tyrone:
+    build: .
+    image: tyrone3:latest
+    ports:
+      - "127.0.0.1:8000:8000" # published on localhost only — keeps the pilot local
+    environment:
+      # Reach the host's Ollama. On Docker Desktop (Win/Mac) host.docker.internal
+      # resolves to the host. On Linux, either run with --add-host below or set
+      # this to your host IP / an Ollama service URL.
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+      TYRONE_DATA_DIR: "/app/data"
+      # Personal mode is off by default. Enabling it also requires adding its deps
+      # (playwright + browsers, Google API libs) to the image; the default image
+      # ships chat + document only.
+      # TYRONE_ENABLE_PERSONAL: "1"
+    volumes:
+      - tyrone-data:/app/data # persists rag_v2.db + uploaded originals
+    extra_hosts:
+      # Lets Linux hosts resolve host.docker.internal (no-op on Docker Desktop).
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  tyrone-data:

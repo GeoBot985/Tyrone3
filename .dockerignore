@@ -1,0 +1,28 @@
+# Version control / CI
+.git
+.github
+
+# Python caches and tooling
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+venv/
+.venv/
+
+# Local runtime data (provided via mounted volume instead)
+rag_v2.db
+rag.db
+eval/eval.db
+eval/.cache/
+temp_uploads/
+rag_uploads/
+runtime_data/
+
+# Secrets and local-only artifacts
+secrets.json
+consolidated*.txt
+*.log
+docs/img/

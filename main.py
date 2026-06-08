@@ -39,8 +39,14 @@ from models import ChatRequest, ChatResponse, RPARequest, RPAResponse, TokenUsag
 from ollama_client import chat as ollama_chat
 from ollama_client import get_models
 from rag.ingest import is_supported_upload_extension
-from tools.gobook_tools import rpa_book, rpa_cancel, rpa_list, rpa_open_courts
 from watcher import PassiveWatcher
+
+# Personal-mode RPA tools need optional deps (playwright). Personal mode is opt-in,
+# so tolerate them being absent; the RPA endpoints are gated behind it.
+try:
+    from tools.gobook_tools import rpa_book, rpa_cancel, rpa_list, rpa_open_courts
+except ModuleNotFoundError:  # pragma: no cover - exercised only without personal deps
+    rpa_book = rpa_cancel = rpa_list = rpa_open_courts = None
 
 RAG_ENABLED = True
 WATCHER_ENABLED = True

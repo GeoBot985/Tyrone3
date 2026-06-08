@@ -17,7 +17,7 @@ FAKE_MODELS = [
     "fake-model",
 ]
 
-OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 CHAT_TIMEOUT_SECONDS = 300.0
 
 
@@ -33,7 +33,7 @@ async def get_models() -> tuple[list[str], str]:
             models = [model["name"] for model in data.get("models", [])]
             return models, ""
     except httpx.ConnectError:
-        return [], "Ollama is not running or unreachable at localhost:11434."
+        return [], f"Ollama is not running or unreachable at {OLLAMA_BASE_URL}."
     except Exception as e:
         return [], f"Error fetching models: {str(e)}"
 
@@ -95,7 +95,7 @@ async def chat(
             data = response.json()
             return data, request_summary, ""
     except httpx.ConnectError:
-        return {}, request_summary, "Ollama is not running or unreachable at localhost:11434."
+        return {}, request_summary, f"Ollama is not running or unreachable at {OLLAMA_BASE_URL}."
     except httpx.TimeoutException:
         return {}, request_summary, "Ollama request timed out after 5 minutes."
     except Exception as e:
