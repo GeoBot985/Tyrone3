@@ -7,7 +7,13 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
-from app.config import STATIC_DIR, SUPPORTED_UPLOAD_TYPES_DISPLAY, TEMP_UPLOADS_DIR, TEMPLATES_DIR
+from app.config import (
+    STATIC_DIR,
+    SUPPORTED_UPLOAD_TYPES_DISPLAY,
+    TEMP_UPLOADS_DIR,
+    TEMPLATES_DIR,
+    personal_mode_enabled,
+)
 from app.services.chat_orchestrator import prepare_mode_state
 from app.services.ingest_service import ingest_file
 from app.services.personal_service import initialize_personal_service
@@ -38,7 +44,15 @@ from watcher import PassiveWatcher
 
 RAG_ENABLED = True
 WATCHER_ENABLED = True
-VALID_CHAT_MODES = {"chat", "document", "personal"}
+BASE_CHAT_MODES = {"chat", "document"}
+
+
+def valid_chat_modes() -> set[str]:
+    """Modes accepted by /api/chat; personal is opt-in via TYRONE_ENABLE_PERSONAL."""
+    modes = set(BASE_CHAT_MODES)
+    if personal_mode_enabled():
+        modes.add("personal")
+    return modes
 
 
 @asynccontextmanager
@@ -57,7 +71,11 @@ watcher = PassiveWatcher()
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"personal_enabled": personal_mode_enabled()},
+    )
 
 
 @app.get("/api/grounding")
@@ -136,10 +154,13 @@ async def api_models():
 @app.post("/api/chat", response_model=ChatResponse)
 async def api_chat(request: ChatRequest):
     start_time = time.time()
-    if request.mode not in VALID_CHAT_MODES:
+    if request.mode == "personal" and not personal_mode_enabled():
         raise HTTPException(
-            status_code=422, detail="Invalid mode. Use chat, document, or personal."
+            status_code=403,
+            detail="Personal mode is not enabled. Set TYRONE_ENABLE_PERSONAL=1 to use it.",
         )
+    if request.mode not in valid_chat_modes():
+        raise HTTPException(status_code=422, detail="Invalid mode. Use chat or document.")
     context = TurnContext(
         model=request.model,
         user_message=request.message,
@@ -385,6 +406,11 @@ async def api_chat(request: ChatRequest):
 
 
 def _ensure_personal_mode(mode: str):
+    if not personal_mode_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="Personal mode is not enabled. Set TYRONE_ENABLE_PERSONAL=1 to use it.",
+        )
     if mode != "personal":
         raise HTTPException(
             status_code=403, detail="These tools are only available in Personal Mode."

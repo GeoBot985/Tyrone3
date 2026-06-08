@@ -78,7 +78,7 @@
                         <select id="mode-select">
                             <option value="chat">Chat</option>
                             <option value="document">Document</option>
-                            <option value="personal">Personal</option>
+                            {% if personal_enabled %}<option value="personal">Personal</option>{% endif %}
                         </select>
                     </div>
                 </div>

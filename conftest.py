@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import os
 import threading
 import time
 from pathlib import Path
 
 import pytest
 import uvicorn
+
+# Personal mode is opt-in in production (off by default). The test suite exercises
+# the personal-mode handlers, so enable it for the session unless a test overrides it.
+os.environ.setdefault("TYRONE_ENABLE_PERSONAL", "1")
 
 
 @pytest.fixture

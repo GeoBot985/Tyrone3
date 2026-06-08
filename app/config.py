@@ -1,6 +1,22 @@
 import os
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def personal_mode_enabled() -> bool:
+    """Whether personal mode (GoBook/Google/WhatsApp integrations) is exposed.
+
+    Off by default so the pilot ships chat + document modes only. Opt in with
+    TYRONE_ENABLE_PERSONAL=1. Read at request time so it can be toggled in tests.
+    """
+    return os.environ.get("TYRONE_ENABLE_PERSONAL", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
 TEMPLATES_DIR = os.path.join(PROJECT_ROOT, "templates")
 TEMP_UPLOADS_DIR = os.path.join(PROJECT_ROOT, "temp_uploads")
