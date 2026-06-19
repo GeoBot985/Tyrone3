@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import csv
 import json
+import re
+import time
+import zipfile
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-import fitz
 from docx import Document
 from openpyxl import Workbook
 from PIL import Image, ImageDraw, ImageFont
@@ -138,6 +140,47 @@ CORPUS_DOCS = [
 ]
 
 
+# Fixed timestamps so regenerating the corpus is byte-stable across runs. Without this,
+# Office core-properties (created/modified), PDF CreationDate/ModDate, and zip entry
+# mtimes all embed wall-clock time, so every `python -m eval.scorecard` run would rewrite
+# the tracked corpus binaries with identical content but different bytes.
+_FIXED_DT = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+_FIXED_STRUCT = time.struct_time((2026, 1, 1, 0, 0, 0, 0, 0, 0))
+_FIXED_ZIP_DATE = (2026, 1, 1, 0, 0, 0)
+
+
+# Some OOXML writers (openpyxl) stamp dcterms:modified with the wall-clock time at
+# save, overriding anything we set on the properties object. Normalizing the
+# docProps/core.xml bytes directly is the only reliable way to fix it.
+_CORE_DATE_RE = re.compile(
+    rb"(<dcterms:(?:created|modified)\b[^>]*>)([^<]*)(</dcterms:(?:created|modified)>)"
+)
+_FIXED_CORE_DT_STR = b"2026-01-01T00:00:00Z"
+
+
+def _normalize_zip_timestamps(path: Path) -> None:
+    """Rewrite a zip (docx/xlsx) so every entry carries the fixed mtime and the
+    OOXML core created/modified dates are pinned.
+
+    Preserves entry order, compression type, and external attributes.
+    """
+    with zipfile.ZipFile(path, "r") as src:
+        items: list[tuple[zipfile.ZipInfo, bytes]] = []
+        for info in src.infolist():
+            data = src.read(info.filename)
+            if info.filename == "docProps/core.xml":
+                data = _CORE_DATE_RE.sub(
+                    lambda m: m.group(1) + _FIXED_CORE_DT_STR + m.group(3), data
+                )
+            items.append((info, data))
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as dst:
+        for info, data in items:
+            new_info = zipfile.ZipInfo(info.filename, date_time=_FIXED_ZIP_DATE)
+            new_info.compress_type = info.compress_type
+            new_info.external_attr = info.external_attr
+            dst.writestr(new_info, data)
+
+
 def _write_txt(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
@@ -161,7 +204,10 @@ def _write_docx(path: Path, spec: dict[str, Any]) -> None:
         cells = table.add_row().cells
         for cell, value in zip(cells, row):
             cell.text = str(value)
+    document.core_properties.created = _FIXED_DT
+    document.core_properties.modified = _FIXED_DT
     document.save(path)
+    _normalize_zip_timestamps(path)
 
 
 def _write_xlsx(path: Path, sheets: dict[str, list[list[Any]]]) -> None:
@@ -176,7 +222,10 @@ def _write_xlsx(path: Path, sheets: dict[str, list[list[Any]]]) -> None:
             worksheet = workbook.create_sheet(title=sheet_name)
         for row in rows:
             worksheet.append(row)
+    workbook.properties.created = _FIXED_DT
+    workbook.properties.modified = _FIXED_DT
     workbook.save(path)
+    _normalize_zip_timestamps(path)
 
 
 def _write_pdf(path: Path, text: str) -> None:
@@ -190,7 +239,9 @@ def _write_pdf(path: Path, text: str) -> None:
     for line in text.splitlines():
         draw.text((100, y), line, fill="black", font=font)
         y += 110
-    image.save(path, "PDF", resolution=200.0)
+    image.save(
+        path, "PDF", resolution=200.0, creationDate=_FIXED_STRUCT, modDate=_FIXED_STRUCT
+    )
 
 
 def _write_scanned_pdf(path: Path, lines: list[str]) -> None:
@@ -204,7 +255,9 @@ def _write_scanned_pdf(path: Path, lines: list[str]) -> None:
     for line in lines:
         draw.text((100, y), line, fill="black", font=font)
         y += 120
-    image.save(path, "PDF", resolution=200.0)
+    image.save(
+        path, "PDF", resolution=200.0, creationDate=_FIXED_STRUCT, modDate=_FIXED_STRUCT
+    )
 
 
 def build_corpus(overwrite: bool = True) -> list[dict[str, str]]:

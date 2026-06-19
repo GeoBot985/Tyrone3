@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import shutil
 import threading
@@ -9,6 +10,8 @@ import fitz
 import pytesseract
 from app.config import PDF_MIN_TEXT_THRESHOLD_FOR_NO_OCR
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_tesseract_cmd() -> str | None:
@@ -58,8 +61,10 @@ class OCRProgressTracker:
     def increment(self):
         with self.lock:
             self.completed_pages += 1
-            print(
-                f"Ingestion Progress | mode: OCR | pages: {self.completed_pages}/{self.total_pages} complete"
+            logger.info(
+                "Ingestion progress | mode: OCR | pages: %d/%d complete",
+                self.completed_pages,
+                self.total_pages,
             )
 
 
@@ -87,7 +92,7 @@ def process_page_ocr(
         result["text"] = page_text
         result["success"] = True
     except Exception as e:
-        print(f"Error OCRing page {page_index}: {e}")
+        logger.warning("Error OCRing page %s: %s", page_index, e)
         result["text"] = f"[Error processing page {page_index + 1}]"
 
     if tracker:

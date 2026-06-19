@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 import uuid
 from datetime import UTC, datetime
 
 import duckdb
 from app.config import RAG_DB_PATH
+
+logger = logging.getLogger(__name__)
 
 
 def get_connection(db_path=RAG_DB_PATH):
@@ -215,7 +218,7 @@ def bootstrap_personal_data(conn):
                 "notes_json": json.dumps([seed_note]),
             },
         )
-        print(f"Bootstrapped {seed_name} entity.")
+        logger.info("Bootstrapped %s entity.", seed_name)
 
     # Check if we have some memories
     mem_exists = conn.execute(
@@ -239,4 +242,4 @@ def bootstrap_personal_data(conn):
                 "category": "fact",
             },
         )
-        print("Bootstrapped personal memories.")
+        logger.info("Bootstrapped personal memories.")

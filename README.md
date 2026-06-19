@@ -39,14 +39,15 @@ Measured in this workspace on 2026-06-19.
 | Ruff | pass | 0 errors |
 | Mypy (`app rag`) | pass | 0 errors |
 | Dead code | pass | 0 high-confidence findings |
+| Dependency sync | pass | in sync |
 | Retrieval recall@k | 100% | >= 90% |
 | Faithfulness | 100% | >= 90% |
 | Refusal accuracy | 100% | >= 90% |
 | Confidence calibration | 100% | >= 90% |
 | Intent routing | 100% | >= 90% |
 | Robustness | 0 unhandled 500s | 100% |
-| Perf: retrieval warm p95 | 41.0 ms | < 500 ms |
-| Perf: chat warm p95 | 28.5 ms | < 1000 ms |
+| Perf: retrieval warm p95 | 35.9 ms | < 500 ms |
+| Perf: chat warm p95 | 25.4 ms | < 1000 ms |
 | Docs | Present | Present |
 
 ## Setup

@@ -27,6 +27,7 @@ METRICS = [
         [sys.executable, "-m", "vulture", "--min-confidence", "80", "app", "rag"],
         "0 findings",
     ),
+    Metric("deps_sync", [sys.executable, "scripts/check_deps_sync.py"], "in sync"),
     Metric("retrieval_recall", [sys.executable, "-m", "eval.retrieval_eval"], ">=90%"),
     Metric("faithfulness", [sys.executable, "-m", "eval.faithfulness_eval"], ">=90%"),
     Metric("refusal_accuracy", [sys.executable, "-m", "eval.refusal_eval"], ">=90%"),
@@ -65,6 +66,8 @@ def extract_detail(name: str, stdout: str) -> str:
         return f"0 errors / {files} files" if files else "-"
     if name == "dead_code":
         return "0 findings" if not text.strip() else f"{len(text.strip().splitlines())} findings"
+    if name == "deps_sync":
+        return "in sync" if "in sync" in text else "drift"
     if name == "retrieval_recall":
         recall = search(r"recall@k=([\d.]+)")
         mrr = search(r"mrr=([\d.]+)")
