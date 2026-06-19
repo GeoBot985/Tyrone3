@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import os
-import threading
-import time
 from pathlib import Path
 
 import pytest
-import uvicorn
 
 # Personal mode is opt-in in production (off by default). The test suite exercises
 # the personal-mode handlers, so enable it for the session unless a test overrides it.
@@ -51,18 +48,3 @@ def temp_rag_db(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def isolate_rag_db(temp_rag_db):
     yield temp_rag_db
-
-
-@pytest.fixture(scope="session", autouse=True)
-def api_server():
-    config = uvicorn.Config("main:app", host="127.0.0.1", port=8000, log_level="warning")
-    server = uvicorn.Server(config)
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    for _ in range(100):
-        if server.started:
-            break
-        time.sleep(0.05)
-    yield
-    server.should_exit = True
-    thread.join(timeout=5)

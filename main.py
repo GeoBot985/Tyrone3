@@ -31,7 +31,7 @@ from app.services.session_grounding import (
 )
 from app.services.watcher import ChatRequestPayload, inspect_chat_request
 from app.utils.token_utils import estimate_tokens
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -130,7 +130,24 @@ async def api_docs():
 
 @app.delete("/api/docs/{document_id}")
 async def api_delete_doc(document_id: str):
-    return delete_document_service(document_id)
+    """Delete a single indexed document.
+
+    Returns 204 No Content on success, 404 if no document matched the id,
+    and 500 for unexpected failures (the body still carries the structured error).
+    """
+    result = delete_document_service(document_id)
+    if not result.get("ok"):
+        return JSONResponse(content=result, status_code=500)
+    if not result.get("deleted"):
+        return JSONResponse(
+            content={
+                "ok": False,
+                "deleted": False,
+                "error": f"Document with ID {document_id} not found.",
+            },
+            status_code=404,
+        )
+    return Response(status_code=204)
 
 
 @app.post("/api/docs/clear")

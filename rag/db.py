@@ -169,14 +169,32 @@ def list_documents(conn) -> list[dict]:
 
 
 def delete_document(conn, document_id: str) -> bool:
-    # Manual cascade because DuckDB FK ON DELETE CASCADE might not be fully supported in all versions/setups
-    # or might require specific pragmas. Manual is safer here.
+    # Manual cascade: DuckDB's ON DELETE CASCADE support varies across versions, so we
+    # delete child rows explicitly. We deliberately do NOT wrap this in a single
+    # transaction: DuckDB (1.4.x) validates the parent-side foreign key against the
+    # pre-transaction snapshot, so deleting the documents row inside an explicit txn
+    # still reports the just-deleted chunks as referencing it (ConstraintException).
+    # Running the statements in autocommit avoids that. Order is chunks-then-documents:
+    # the FK makes deleting documents-first impossible, and the only reachable
+    # intermediate state on a mid-sequence failure is orphaned chunks (no parent),
+    # which the FK prevents from being reintroduced. Returns True only when a documents
+    # row was actually removed.
+    existing = conn.execute(
+        "SELECT 1 FROM documents WHERE document_id = ?",
+        [document_id],
+    ).fetchone()
+    if existing is None:
+        return False
     conn.execute("DELETE FROM chunks WHERE document_id = ?", [document_id])
     conn.execute("DELETE FROM documents WHERE document_id = ?", [document_id])
-    return True  # Fail-safe, the actual deletion is what matters
+    return True
 
 
 def clear_corpus(conn) -> None:
+    # Delete child rows before parent rows. As with delete_document, this is not wrapped
+    # in an explicit transaction because DuckDB's foreign-key validation does not see
+    # in-transaction child deletes when checking the parent delete, which would raise a
+    # spurious ConstraintException. Autocommit per statement is correct here.
     conn.execute("DELETE FROM chunks")
     conn.execute("DELETE FROM documents")
 

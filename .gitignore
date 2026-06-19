@@ -16,3 +16,6 @@ runtime_data/
 .pytest_cache/
 __pycache__/
 *.pyc
+# One-off edit/patch scripts
+tools/_*_edit.py
+_patch_*.py

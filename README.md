@@ -30,11 +30,11 @@ flowchart LR
 
 ## Current Scorecard
 
-Measured in this workspace on 2026-06-01.
+Measured in this workspace on 2026-06-19.
 
 | Metric | Result | Target |
 |---|---:|---:|
-| Tests | 148 passed | 100% |
+| Tests | 156 passed | 100% |
 | Coverage (`app/`, `rag/`) | 93% | >= 90% |
 | Ruff | pass | 0 errors |
 | Mypy (`app rag`) | pass | 0 errors |
@@ -45,15 +45,15 @@ Measured in this workspace on 2026-06-01.
 | Confidence calibration | 100% | >= 90% |
 | Intent routing | 100% | >= 90% |
 | Robustness | 0 unhandled 500s | 100% |
-| Perf: retrieval warm p95 | 44.7 ms | < 500 ms |
-| Perf: chat warm p95 | 31.3 ms | < 1000 ms |
+| Perf: retrieval warm p95 | 41.0 ms | < 500 ms |
+| Perf: chat warm p95 | 28.5 ms | < 1000 ms |
 | Docs | Present | Present |
 
 ## Setup
 
 Requirements:
 
-- Python 3.10+
+- Python 3.11+
 - Ollama for live runs, or `OLLAMA_FAKE=1` for deterministic demo/eval mode
 
 Install:

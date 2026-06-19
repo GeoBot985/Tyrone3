@@ -9,6 +9,7 @@ from rag.db import (
     get_connection,
     get_corpus_stats,
     get_document_by_id,
+    init_db,
     list_documents,
 )
 from rag.search import detect_retrieval_mode, search
@@ -373,6 +374,7 @@ def get_full_document_content(document_id: str) -> dict:
     conn = None
     try:
         conn = get_connection(DB_PATH)
+        init_db(conn)
         doc = get_document_by_id(conn, document_id)
         if not doc:
             result["error"] = f"Document with ID {document_id} not found."
@@ -399,10 +401,11 @@ def get_full_document_content(document_id: str) -> dict:
 def delete_document_service(document_id: str) -> dict:
     try:
         conn = get_connection(DB_PATH)
-        success = delete_document(conn, document_id)
-        return {"ok": True, "deleted": success}
+        init_db(conn)
+        deleted = delete_document(conn, document_id)
+        return {"ok": True, "deleted": deleted}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "deleted": False, "error": str(e)}
     finally:
         try:
             conn.close()
@@ -413,6 +416,7 @@ def delete_document_service(document_id: str) -> dict:
 def clear_corpus_service() -> dict:
     try:
         conn = get_connection(DB_PATH)
+        init_db(conn)
         clear_corpus(conn)
         return {"ok": True}
     except Exception as e:
@@ -432,6 +436,7 @@ def get_corpus_stats_service() -> dict:
         }
     try:
         conn = get_connection(DB_PATH)
+        init_db(conn)
         stats = get_corpus_stats(conn)
         return {"ok": True, "stats": stats}
     except Exception as e:
@@ -449,6 +454,7 @@ def list_indexed_documents() -> dict:
 
     try:
         conn = get_connection(DB_PATH)
+        init_db(conn)
         docs = list_documents(conn)
         return {"ok": True, "documents": docs, "error": None}
     except Exception as e:
